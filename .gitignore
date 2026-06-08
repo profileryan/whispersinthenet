@@ -1,0 +1,11 @@
+node_modules
+.npm-cache
+.next
+out
+.env
+.env*.local
+*.log
+dist
+coverage
+
+.vercel
