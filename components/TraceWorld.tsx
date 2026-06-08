@@ -122,6 +122,7 @@ const CAMERA_DEBUG_MAX_SAMPLES = 360;
 const MOVEMENT_BROADCAST_INTERVAL_MS = 120;
 const SETTLED_PRESENCE_DELAY_MS = 550;
 const VISITOR_COLORS = ["#f8ffb8", "#b8f6ff", "#d8b8ff", "#ffcfb8", "#b8ffd1", "#fff0b8"];
+const WORLD_BACKGROUND_COLOR = "#ebdfd5";
 
 export function TraceWorld({ traces, selectedTrace, now, onSelectTrace, onClearSelection }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -148,8 +149,8 @@ export function TraceWorld({ traces, selectedTrace, now, onSelectTrace, onClearS
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#d6d6d6");
-    scene.fog = new THREE.Fog("#d6d6d6", 18, 46);
+    scene.background = new THREE.Color(WORLD_BACKGROUND_COLOR);
+    scene.fog = new THREE.Fog(WORLD_BACKGROUND_COLOR, 18, 46);
 
     const camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 320);
     camera.position.set(0, 6, 18);
@@ -324,7 +325,7 @@ export function TraceWorld({ traces, selectedTrace, now, onSelectTrace, onClearS
       blockers = [];
       walkableMeshes = [];
       cameraObstructionMeshes = [];
-      scene.fog = new THREE.Fog("#d6d6d6", 18, 46);
+      scene.fog = new THREE.Fog(WORLD_BACKGROUND_COLOR, 18, 46);
       addFallbackGrid();
     }
 
@@ -358,7 +359,7 @@ export function TraceWorld({ traces, selectedTrace, now, onSelectTrace, onClearS
       cameraObstructionMeshes = collectMeshes(root, ["Walls", "Rack", "Pillars", "Landscape"]);
 
       const roomDiagonal = Math.hypot(roomBounds.maxX - roomBounds.minX, roomBounds.maxZ - roomBounds.minZ);
-      scene.fog = new THREE.Fog("#d6d6d6", Math.max(18, roomDiagonal * 0.32), Math.max(46, roomDiagonal * 1.05));
+      scene.fog = new THREE.Fog(WORLD_BACKGROUND_COLOR, Math.max(18, roomDiagonal * 0.32), Math.max(46, roomDiagonal * 1.05));
       const clampedTarget = clampPoint(new THREE.Vector2(controls.target.x, controls.target.z), navigationBounds);
       controls.target.x = clampedTarget.x;
       controls.target.z = clampedTarget.y;
