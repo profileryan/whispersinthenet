@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   calculateExpiresAt,
+  DEMO_TRACES,
   getBrowseThemesForCategory,
   getCategoryForTheme,
   getFadedTraceCopy,
@@ -115,6 +116,19 @@ test("getFadedTraceCopy uses lowercased theme label across categories", () => {
   assert.equal(getFadedTraceCopy({ theme: "anger" } as Pick<Trace, "theme">), "There are traces of anger here.");
   assert.equal(getFadedTraceCopy({ theme: "closure" } as Pick<Trace, "theme">), "There are traces of closure here.");
   assert.equal(getFadedTraceCopy({ theme: "secret" } as Pick<Trace, "theme">), "There are traces of secret here.");
+});
+
+test("demo traces include active and faded fallback samples across categories", () => {
+  const now = new Date("2026-06-09T00:00:00.000Z");
+
+  for (const category of ["emotion", "confession"] as const) {
+    for (const theme of getLeaveThemesForCategory(category)) {
+      const traces = DEMO_TRACES.filter((trace) => trace.category === category && trace.theme === theme.key);
+
+      assert.ok(traces.some((trace) => !isTraceFaded(trace, now)), `${category}/${theme.key} needs an active demo trace`);
+      assert.ok(traces.some((trace) => isTraceFaded(trace, now)), `${category}/${theme.key} needs a faded demo trace`);
+    }
+  }
 });
 
 test("resolveSignedUrlTtlSeconds caps public approved URLs to remaining lifetime", () => {
