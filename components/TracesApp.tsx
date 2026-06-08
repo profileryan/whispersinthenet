@@ -7,7 +7,16 @@ import { ModeToggle, NavDropdown } from "@/components/ModeToggle";
 import { ThemeFilters } from "@/components/ThemeFilters";
 import { TraceMap } from "@/components/TraceMap";
 import { TraceWorld } from "@/components/TraceWorld";
-import { DEMO_TRACES, getBrowseThemesForCategory, type ThemeKey, type Trace, type TraceCategory, type ViewMode, normalizeTrace } from "@/lib/traces";
+import {
+  DEMO_TRACES,
+  getBrowseThemesForCategory,
+  type ThemeKey,
+  type Trace,
+  type TraceCategory,
+  type ViewMode,
+  normalizeTrace,
+  supplementTracesWithDemoFallback,
+} from "@/lib/traces";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 type ListenMode = TraceCategory | "everything";
@@ -55,7 +64,7 @@ export function TracesApp() {
           return;
         }
 
-        const liveTraces = data.map((row) => normalizeTrace(row));
+        const liveTraces = supplementTracesWithDemoFallback(data.map((row) => normalizeTrace(row)));
         setTraces(liveTraces);
         setLoadState("live");
       });
@@ -70,7 +79,7 @@ export function TracesApp() {
           .order("created_at", { ascending: false })
           .then(({ data }) => {
             if (active && data?.length) {
-              setTraces(data.map((row) => normalizeTrace(row)));
+              setTraces(supplementTracesWithDemoFallback(data.map((row) => normalizeTrace(row))));
             }
           });
       })

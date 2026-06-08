@@ -16,6 +16,7 @@ import {
   parseRetentionQuantityForSubmit,
   parseRetentionUnitForSubmit,
   resolveSignedUrlTtlSeconds,
+  supplementTracesWithDemoFallback,
   type Trace,
 } from "./traces.ts";
 
@@ -129,6 +130,28 @@ test("demo traces include active and faded fallback samples across categories", 
       assert.ok(traces.some((trace) => isTraceFaded(trace, now)), `${category}/${theme.key} needs a faded demo trace`);
     }
   }
+});
+
+test("demo fallback supplements sparse live data without replacing live traces", () => {
+  const now = new Date("2026-06-09T00:00:00.000Z");
+  const liveTrace = normalizeTrace({
+    id: "live-hope-1",
+    display_name: "Live",
+    theme: "hope",
+    prompt: THEME_BY_KEY.hope.prompts[0],
+    latitude: 1.29,
+    longitude: 103.8,
+    duration_seconds: 12,
+    status: "approved",
+    created_at: "2026-06-08T12:00:00.000Z",
+  });
+  const supplemented = supplementTracesWithDemoFallback([liveTrace], now);
+
+  assert.equal(supplemented[0].id, "live-hope-1");
+  assert.equal(supplemented.filter((trace) => trace.id === "live-hope-1").length, 1);
+  assert.ok(supplemented.some((trace) => trace.category === "confession"));
+  assert.ok(supplemented.some((trace) => trace.category === "emotion" && isTraceFaded(trace, now)));
+  assert.ok(supplemented.some((trace) => trace.category === "confession" && isTraceFaded(trace, now)));
 });
 
 test("resolveSignedUrlTtlSeconds caps public approved URLs to remaining lifetime", () => {

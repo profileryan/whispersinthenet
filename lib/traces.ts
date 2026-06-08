@@ -835,6 +835,34 @@ export function isTraceFaded(trace: Pick<Trace, "expiresAt">, now: Date = new Da
   return Boolean(trace.expiresAt && new Date(trace.expiresAt).getTime() <= now.getTime());
 }
 
+export function supplementTracesWithDemoFallback(liveTraces: Trace[], now: Date = new Date()) {
+  if (!liveTraces.length) {
+    return DEMO_TRACES;
+  }
+
+  const covered = new Set(liveTraces.map((trace) => `${trace.category}:${trace.theme}:${isTraceFaded(trace, now) ? "faded" : "active"}`));
+  const supplemented = [...liveTraces];
+
+  for (const category of TRACE_GROUPS.map((group) => group.category)) {
+    for (const theme of getLeaveThemesForCategory(category)) {
+      for (const faded of [false, true]) {
+        const key = `${category}:${theme.key}:${faded ? "faded" : "active"}`;
+        if (covered.has(key)) {
+          continue;
+        }
+
+        const demoTrace = DEMO_TRACES.find((trace) => trace.category === category && trace.theme === theme.key && isTraceFaded(trace, now) === faded);
+        if (demoTrace) {
+          supplemented.push(demoTrace);
+          covered.add(key);
+        }
+      }
+    }
+  }
+
+  return supplemented;
+}
+
 export function getFadedTraceCopy(trace: Pick<Trace, "theme">) {
   return `There are traces of ${THEME_BY_KEY[trace.theme].label.toLowerCase()} here.`;
 }
