@@ -14,8 +14,8 @@ type ListenMode = TraceCategory | "everything";
 
 export function TracesApp() {
   const [mode, setMode] = useState<ViewMode>("map");
-  const [listenMode, setListenMode] = useState<ListenMode>("emotion");
-  const [enabledThemes, setEnabledThemes] = useState<Set<ThemeKey>>(() => new Set(getBrowseThemesForCategory("emotion").map((theme) => theme.key)));
+  const [listenMode, setListenMode] = useState<ListenMode>("everything");
+  const [enabledThemes, setEnabledThemes] = useState<Set<ThemeKey>>(() => new Set());
   const [traces, setTraces] = useState<Trace[]>(DEMO_TRACES);
   const [selectedTrace, setSelectedTrace] = useState<Trace | null>(null);
   const [panelTrace, setPanelTrace] = useState<Trace | null>(null);
