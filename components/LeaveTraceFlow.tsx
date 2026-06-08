@@ -75,6 +75,7 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
   const leaveThemes = useMemo(() => (category ? getLeaveThemesForCategory(category) : []), [category]);
   const selectedThemeLabel = theme ? getTraceTheme(theme).label.toLowerCase() : "trace";
   const completionLabel = theme ? selectedThemeLabel : category ?? "trace";
+  const completionWelcomeText = category === "confession" ? "is safe here." : "is welcome here.";
   const prompt = theme && promptIndex !== null ? getTraceTheme(theme).prompts[promptIndex] : "";
 
   function chooseCategory(nextCategory: TraceCategory) {
@@ -333,7 +334,7 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
       {step === FLOW_STEP.DONE ? (
         <div className="flow-card done-step">
           <h2 className="welcome-heading">
-            Your <span>{completionLabel}</span> is welcome here...
+            Your <span>{completionLabel}</span> {completionWelcomeText}
           </h2>
           <p>It will appear for others, in time...</p>
           <button className="primary-action" onClick={onComplete}>
@@ -463,6 +464,7 @@ function RecordingStep({
   onNext: () => void;
 }) {
   const categoryLabel = theme ? getTraceTheme(theme).label.toLowerCase() : category ?? "trace";
+  const welcomeText = category === "confession" ? "is safe here." : "is welcome here.";
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const activeStreamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -552,7 +554,7 @@ function RecordingStep({
   return (
     <div className={`flow-card record-step${category === "confession" ? " is-single-prompt" : ""}`}>
       <h2 className="welcome-heading">
-        Your <span>{categoryLabel}</span> is welcome here...
+        Your <span>{categoryLabel}</span> {welcomeText}
       </h2>
       <div className="recording-prompt">
         <p key={prompt} className="recording-question">
