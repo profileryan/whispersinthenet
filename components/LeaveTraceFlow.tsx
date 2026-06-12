@@ -214,7 +214,7 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
 
       {step === FLOW_STEP.CATEGORY ? (
         <div className="flow-card type-step">
-          <h2>What would you like to share today?</h2>
+          <h2>The city is ever-shifting, but humanity persists. What would you like to leave a trace of today?</h2>
           <div className="type-choice-grid">
             <button type="button" className={category === "emotion" ? "is-selected" : ""} onClick={() => chooseCategory("emotion")}>
               <strong>An Emotion</strong>

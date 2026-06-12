@@ -12,11 +12,11 @@ const OSM_SOURCE: RasterSourceSpecification = {
 
 const RASTER_PAINT_BY_TONE: Record<TraceMapTone, RasterLayerSpecification["paint"]> = {
   browse: {
-    "raster-opacity": 0.62,
+    "raster-opacity": 0.72,
     "raster-saturation": -0.9,
-    "raster-contrast": -0.24,
-    "raster-brightness-min": 0.18,
-    "raster-brightness-max": 0.96,
+    "raster-contrast": -0.08,
+    "raster-brightness-min": 0.1,
+    "raster-brightness-max": 0.98,
   },
   picker: {
     "raster-opacity": 0.78,

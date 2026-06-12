@@ -264,8 +264,9 @@ function SiteHeader() {
       <div>
         <h1>_TRACES</h1>
         <p>
-          This is a map of human voices, stories and feelings in the city. Stay awhile and listen. Then, share
-          something of your own.
+          This is a map of fleeting human voices, stories and feelings in the city.
+          <br />
+          Stay awhile and listen. Then, leave a trace of your own.
         </p>
       </div>
       <div className="logo-slot" aria-label="Logo image slot">
