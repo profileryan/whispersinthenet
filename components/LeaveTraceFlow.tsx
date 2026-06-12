@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl, { type Map, type Marker } from "maplibre-gl";
 import { getTraceMapStyle } from "@/lib/mapStyle";
-import { RETENTION_UNITS, SINGAPORE_CENTER, getLeaveThemesForCategory, getTraceTheme, type ThemeKey, type TraceCategory, type TraceRetentionUnit } from "@/lib/traces";
+import {
+  RETENTION_UNITS,
+  SINGAPORE_CENTER,
+  SOUNDSCAPE_RECORDING_PROMPT,
+  getLeaveThemesForCategory,
+  getTraceTheme,
+  type ThemeKey,
+  type TraceCategory,
+  type TraceRetentionUnit,
+} from "@/lib/traces";
 
 type Props = {
   onClose: () => void;
@@ -77,11 +86,11 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
   const selectedThemeLabel = theme ? getTraceTheme(theme).label.toLowerCase() : "trace";
   const completionLabel = theme ? selectedThemeLabel : category ?? "trace";
   const completionWelcomeText = category === "confession" ? "is safe here." : "is welcome here.";
-  const prompt = theme && promptIndex !== null ? getTraceTheme(theme).prompts[promptIndex] : "";
+  const prompt = category === "soundscape" ? SOUNDSCAPE_RECORDING_PROMPT : theme && promptIndex !== null ? getTraceTheme(theme).prompts[promptIndex] : "";
 
   function chooseCategory(nextCategory: TraceCategory) {
     setCategory(nextCategory);
-    setTheme(nextCategory === "soundscape" ? "soundscape" : null);
+    setTheme(null);
     setPromptIndex(nextCategory === "soundscape" ? 0 : null);
     setAudioBlob(null);
     setRecordingDurationSeconds(0);
@@ -99,6 +108,11 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
       return;
     }
 
+    if (step === FLOW_STEP.THEME && category === "soundscape") {
+      setStep(FLOW_STEP.RECORD);
+      return;
+    }
+
     setStep((current) => Math.max(FLOW_STEP.NAME, current - 1));
   }
 
@@ -110,8 +124,10 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
     const prompts = getTraceTheme(nextTheme).prompts;
     setTheme(nextTheme);
     setPromptIndex(Math.floor(Math.random() * prompts.length));
-    setAudioBlob(null);
-    setRecordingDurationSeconds(0);
+    if (category !== "soundscape") {
+      setAudioBlob(null);
+      setRecordingDurationSeconds(0);
+    }
     setMessage("");
   }
 
@@ -252,7 +268,13 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
 
       {step === FLOW_STEP.THEME ? (
         <div className="theme-step">
-          <h2>{category === "confession" ? "Choose a confession" : "Choose an emotion"}</h2>
+          <h2>
+            {category === "soundscape"
+              ? "Which of these best describes your soundscape?"
+              : category === "confession"
+                ? "Choose a confession"
+                : "Choose an emotion"}
+          </h2>
           <div className="prompt-grid">
             {leaveThemes.map((item) => (
               <button
@@ -274,7 +296,7 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
               </button>
             ))}
           </div>
-          <button className="primary-action" disabled={!theme} onClick={() => setStep(FLOW_STEP.RECORD)}>
+          <button className="primary-action" disabled={!theme} onClick={() => setStep(category === "soundscape" ? FLOW_STEP.DURATION : FLOW_STEP.RECORD)}>
             Next
           </button>
         </div>
@@ -295,7 +317,7 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
             setRecordingDurationSeconds(seconds);
           }}
           onDifferentQuestion={showDifferentQuestion}
-          onNext={() => setStep(FLOW_STEP.DURATION)}
+          onNext={() => setStep(category === "soundscape" ? FLOW_STEP.THEME : FLOW_STEP.DURATION)}
         />
       ) : null}
 
@@ -576,7 +598,7 @@ function RecordingStep({
   return (
     <div className={`flow-card record-step${category !== "emotion" ? " is-single-prompt" : ""}`}>
       {category === "soundscape" ? (
-        <h2 className="welcome-heading">THIS MOMENT IS PRECIOUS...</h2>
+        <h2 className="welcome-heading">You are in the present...</h2>
       ) : (
         <h2 className="welcome-heading">
           Your <span>{categoryLabel}</span> {welcomeText}

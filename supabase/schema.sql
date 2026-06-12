@@ -10,7 +10,7 @@ do $$ begin
   create type trace_theme as enum (
     'hope', 'joy', 'fear', 'sadness', 'closure', 'anger',
     'longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance',
-    'soundscape'
+    'conversation', 'nature', 'traffic', 'music', 'city_life', 'soundscape'
   );
 exception
   when duplicate_object then null;
@@ -23,6 +23,11 @@ alter type trace_theme add value if not exists 'regret';
 alter type trace_theme add value if not exists 'pretence';
 alter type trace_theme add value if not exists 'secret';
 alter type trace_theme add value if not exists 'avoidance';
+alter type trace_theme add value if not exists 'conversation';
+alter type trace_theme add value if not exists 'nature';
+alter type trace_theme add value if not exists 'traffic';
+alter type trace_theme add value if not exists 'music';
+alter type trace_theme add value if not exists 'city_life';
 alter type trace_theme add value if not exists 'soundscape';
 
 do $$ begin
@@ -63,7 +68,7 @@ create table if not exists public.traces (
     or
     (category = 'confession' and theme::text in ('longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance'))
     or
-    (category = 'soundscape' and theme::text = 'soundscape')
+    (category = 'soundscape' and theme::text in ('conversation', 'nature', 'traffic', 'music', 'city_life', 'soundscape'))
   ),
   constraint traces_retention_expiry_check check (
     (retention_unit = 'epoch' and expires_at is null)
@@ -86,7 +91,7 @@ alter table public.traces add constraint traces_category_theme_check check (
   or
   (category = 'confession' and theme::text in ('longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance'))
   or
-  (category = 'soundscape' and theme::text = 'soundscape')
+  (category = 'soundscape' and theme::text in ('conversation', 'nature', 'traffic', 'music', 'city_life', 'soundscape'))
 );
 
 do $$ begin

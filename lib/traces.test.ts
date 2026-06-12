@@ -95,19 +95,20 @@ test("trace category helpers validate theme/category combinations", () => {
   assert.equal(THEME_BY_KEY.secret.label, "Secret");
   assert.deepEqual(getLeaveThemesForCategory("confession").map((theme) => theme.key), ["longing", "guilt", "pretence", "regret", "secret", "avoidance"]);
   assert.deepEqual(getBrowseThemesForCategory("confession").map((theme) => theme.key), ["longing", "guilt", "regret", "pretence", "secret", "avoidance"]);
-  assert.deepEqual(getLeaveThemesForCategory("soundscape").map((theme) => theme.key), ["soundscape"]);
-  assert.deepEqual(getBrowseThemesForCategory("soundscape").map((theme) => theme.key), ["soundscape"]);
+  assert.deepEqual(getLeaveThemesForCategory("soundscape").map((theme) => theme.key), ["conversation", "nature", "traffic", "music", "city_life"]);
+  assert.deepEqual(getBrowseThemesForCategory("soundscape").map((theme) => theme.key), ["conversation", "nature", "traffic", "music", "city_life"]);
   assert.equal(THEME_BY_KEY.regret.prompts.length, 1);
   assert.equal(THEME_BY_KEY.regret.prompts[0], "What is something you wish you had done differently?");
-  assert.equal(THEME_BY_KEY.soundscape.prompts[0], "What do you hear around you?");
+  assert.equal(THEME_BY_KEY.conversation.prompts[0], "What do you hear around you?");
   assert.equal(getCategoryForTheme("hope"), "emotion");
   assert.equal(getCategoryForTheme("avoidance"), "confession");
+  assert.equal(getCategoryForTheme("conversation"), "soundscape");
   assert.equal(getCategoryForTheme("soundscape"), "soundscape");
   assert.equal(isValidThemeForCategory("hope", "emotion"), true);
   assert.equal(isValidThemeForCategory("hope", "confession"), false);
   assert.equal(isValidThemeForCategory("secret", "confession"), true);
-  assert.equal(isValidThemeForCategory("soundscape", "soundscape"), true);
-  assert.equal(isValidThemeForCategory("soundscape", "emotion"), false);
+  assert.equal(isValidThemeForCategory("nature", "soundscape"), true);
+  assert.equal(isValidThemeForCategory("traffic", "emotion"), false);
   assert.equal(isValidThemeForCategory("banana", "emotion"), false);
 });
 
@@ -122,8 +123,8 @@ test("isTraceFaded changes at expiresAt boundary", () => {
 test("getFadedTraceCopy uses lowercased theme label across categories", () => {
   assert.equal(getFadedTraceCopy({ theme: "anger" } as Pick<Trace, "theme">), "There are traces of anger here.");
   assert.equal(getFadedTraceCopy({ theme: "closure" } as Pick<Trace, "theme">), "There are traces of closure here.");
-  assert.equal(getFadedTraceCopy({ theme: "secret" } as Pick<Trace, "theme">), "There are traces of secret here.");
-  assert.equal(getFadedTraceCopy({ theme: "soundscape" } as Pick<Trace, "theme">), "There are traces of soundscape here.");
+  assert.equal(getFadedTraceCopy({ theme: "secret" } as Pick<Trace, "theme">), "There are traces of secrets here.");
+  assert.equal(getFadedTraceCopy({ theme: "city_life" } as Pick<Trace, "theme">), "There are traces of city life here.");
 });
 
 test("demo traces include active and faded fallback samples across categories", () => {
@@ -209,8 +210,8 @@ test("validateTraceSubmission accepts valid emotion and confession submissions",
   const soundscape = validateTraceSubmission({
     displayName: "Field",
     category: "soundscape",
-    theme: "soundscape",
-    prompt: THEME_BY_KEY.soundscape.prompts[0],
+    theme: "nature",
+    prompt: THEME_BY_KEY.nature.prompts[0],
     latitude: 1.2,
     longitude: 103.8,
     durationSeconds: 12,
@@ -220,7 +221,7 @@ test("validateTraceSubmission accepts valid emotion and confession submissions",
   assert.equal(soundscape.ok, true);
   if (soundscape.ok) {
     assert.equal(soundscape.data.category, "soundscape");
-    assert.equal(soundscape.data.theme, "soundscape");
+    assert.equal(soundscape.data.theme, "nature");
   }
 });
 

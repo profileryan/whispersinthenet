@@ -213,7 +213,7 @@ export function TracesApp() {
                 { value: "soundscape", label: "Soundscapes" },
               ]}
             />
-            {listenMode === "everything" || listenMode === "soundscape" ? null : (
+            {listenMode === "everything" ? null : (
               <ThemeFilters themes={browseThemes} enabledThemes={enabledThemes} onToggle={toggleTheme} animationKey={listenMode} />
             )}
           </div>

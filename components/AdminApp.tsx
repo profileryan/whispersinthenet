@@ -139,24 +139,22 @@ export function AdminApp() {
               { value: "soundscape", label: "Soundscapes" },
             ]}
           />
-          {adminListenCategory === "soundscape" ? null : (
-            <ThemeFilters
-              themes={adminThemes}
-              enabledThemes={enabledThemes}
-              animationKey={adminListenCategory}
-              onToggle={(theme) => {
-                setEnabledThemes((current) => {
-                  const next = new Set(current);
-                  if (next.has(theme)) {
-                    next.delete(theme);
-                  } else {
-                    next.add(theme);
-                  }
-                  return next;
-                });
-              }}
-            />
-          )}
+          <ThemeFilters
+            themes={adminThemes}
+            enabledThemes={enabledThemes}
+            animationKey={adminListenCategory}
+            onToggle={(theme) => {
+              setEnabledThemes((current) => {
+                const next = new Set(current);
+                if (next.has(theme)) {
+                  next.delete(theme);
+                } else {
+                  next.add(theme);
+                }
+                return next;
+              });
+            }}
+          />
           </div>
 
           <div className="admin-layout">
@@ -167,7 +165,7 @@ export function AdminApp() {
                   className={selectedTrace?.id === trace.id ? "is-selected" : ""}
                   onClick={() => setSelectedTrace(trace)}
                 >
-                  <span>{trace.category === "soundscape" ? "soundscape" : `${trace.category} / ${getTraceTheme(trace.theme).label}`}</span>
+                  <span>{trace.category === "soundscape" ? `soundscape / ${getTraceTheme(trace.theme).label}` : `${trace.category} / ${getTraceTheme(trace.theme).label}`}</span>
                   <strong>{trace.displayName}</strong>
                   <em>{trace.status}</em>
                 </button>

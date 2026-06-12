@@ -14,7 +14,7 @@ type Props = {
 
 export function ListeningPanel({ trace, token, now = new Date(), isClosing = false, onDismiss }: Props) {
   const theme = getTraceTheme(trace.theme);
-  const categoryLabel = trace.category === "soundscape" ? "Soundscape" : `${trace.category === "confession" ? "Confession" : "Emotion"} / ${theme.label}`;
+  const categoryLabel = trace.category === "soundscape" ? `Soundscape / ${theme.label}` : `${trace.category === "confession" ? "Confession" : "Emotion"} / ${theme.label}`;
   const shouldUsePublicFadedView = trace.status === "approved" && !token && isTraceFaded(trace, now);
   const panelRef = useRef<HTMLElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);

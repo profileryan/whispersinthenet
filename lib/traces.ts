@@ -12,6 +12,11 @@ export type ThemeKey =
   | "pretence"
   | "secret"
   | "avoidance"
+  | "conversation"
+  | "nature"
+  | "traffic"
+  | "music"
+  | "city_life"
   | "soundscape";
 export type ViewMode = "map" | "immersive";
 export type TraceStatus = "pending" | "approved" | "rejected";
@@ -219,6 +224,46 @@ const CONFESSION_THEMES = [
 
 const SOUNDSCAPE_THEMES = [
   {
+    key: "conversation",
+    label: "Conversation",
+    color: "#d6427d",
+    textColor: "#ffffff",
+    invitation: "Voices, chatter, speech, or nearby talk.",
+    prompts: ["What do you hear around you?"],
+  },
+  {
+    key: "nature",
+    label: "Nature",
+    color: "#2e8b57",
+    textColor: "#ffffff",
+    invitation: "Wind, rain, leaves, birds, insects, or water.",
+    prompts: ["What do you hear around you?"],
+  },
+  {
+    key: "traffic",
+    label: "Traffic",
+    color: "#e24a33",
+    textColor: "#ffffff",
+    invitation: "Roads, engines, trains, crossings, or movement.",
+    prompts: ["What do you hear around you?"],
+  },
+  {
+    key: "music",
+    label: "Music",
+    color: "#6d4cff",
+    textColor: "#ffffff",
+    invitation: "Songs, rhythm, instruments, or performed sound.",
+    prompts: ["What do you hear around you?"],
+  },
+  {
+    key: "city_life",
+    label: "City Life",
+    color: "#0077b6",
+    textColor: "#ffffff",
+    invitation: "Machines, crowds, shops, stations, or daily bustle.",
+    prompts: ["What do you hear around you?"],
+  },
+  {
     key: "soundscape",
     label: "Soundscape",
     color: "#006d77",
@@ -231,7 +276,9 @@ const SOUNDSCAPE_THEMES = [
 const EMOTION_ORDER = ["hope", "joy", "fear", "sadness", "closure", "anger"] satisfies ThemeKey[];
 const CONFESSION_LEAVE_ORDER = ["longing", "guilt", "pretence", "regret", "secret", "avoidance"] satisfies ThemeKey[];
 const CONFESSION_BROWSE_ORDER = ["longing", "guilt", "regret", "pretence", "secret", "avoidance"] satisfies ThemeKey[];
-const SOUNDSCAPE_ORDER = ["soundscape"] satisfies ThemeKey[];
+const SOUNDSCAPE_ORDER = ["conversation", "nature", "traffic", "music", "city_life"] satisfies ThemeKey[];
+
+export const SOUNDSCAPE_RECORDING_PROMPT = "What do you hear around you?";
 
 export const TRACE_GROUPS: TraceGroup[] = [
   { category: "emotion", label: "Emotions", themes: EMOTION_THEMES, leaveOrder: EMOTION_ORDER, browseOrder: EMOTION_ORDER },
@@ -695,11 +742,11 @@ export const DEMO_TRACES: Trace[] = [
     createdAt: "2026-08-08T12:35:00.000Z",
   },
   {
-    id: "demo-soundscape-1",
+    id: "demo-conversation-1",
     displayName: "Ash",
     category: "soundscape",
-    theme: "soundscape",
-    prompt: THEME_BY_KEY.soundscape.prompts[0],
+    theme: "conversation",
+    prompt: SOUNDSCAPE_RECORDING_PROMPT,
     latitude: 1.2905,
     longitude: 103.7885,
     locationLabel: "Tanglin Halt, Singapore",
@@ -711,20 +758,148 @@ export const DEMO_TRACES: Trace[] = [
     createdAt: "2026-08-09T08:00:00.000Z",
   },
   {
-    id: "demo-soundscape-faded-1",
+    id: "demo-conversation-faded-1",
+    displayName: "Market",
+    category: "soundscape",
+    theme: "conversation",
+    prompt: SOUNDSCAPE_RECORDING_PROMPT,
+    latitude: 1.2915,
+    longitude: 103.7935,
+    locationLabel: "Ghim Moh Market, Singapore",
+    durationSeconds: 43,
+    retentionQuantity: 1,
+    retentionUnit: "day",
+    expiresAt: "2026-06-04T09:00:00.000Z",
+    status: "approved",
+    createdAt: "2026-06-03T09:00:00.000Z",
+  },
+  {
+    id: "demo-nature-1",
     displayName: "Field",
     category: "soundscape",
-    theme: "soundscape",
-    prompt: THEME_BY_KEY.soundscape.prompts[0],
+    theme: "nature",
+    prompt: SOUNDSCAPE_RECORDING_PROMPT,
     latitude: 1.3005,
     longitude: 103.8045,
     locationLabel: "Botanic Gardens, Singapore",
+    durationSeconds: 48,
+    retentionQuantity: 1,
+    retentionUnit: "month",
+    expiresAt: "2026-09-10T08:30:00.000Z",
+    status: "approved",
+    createdAt: "2026-08-10T08:30:00.000Z",
+  },
+  {
+    id: "demo-nature-faded-1",
+    displayName: "Field",
+    category: "soundscape",
+    theme: "nature",
+    prompt: SOUNDSCAPE_RECORDING_PROMPT,
+    latitude: 1.3045,
+    longitude: 103.806,
+    locationLabel: "Jacob Ballas, Singapore",
     durationSeconds: 48,
     retentionQuantity: 1,
     retentionUnit: "day",
     expiresAt: "2026-06-05T08:00:00.000Z",
     status: "approved",
     createdAt: "2026-06-04T08:00:00.000Z",
+  },
+  {
+    id: "demo-traffic-1",
+    displayName: "Crossing",
+    category: "soundscape",
+    theme: "traffic",
+    prompt: SOUNDSCAPE_RECORDING_PROMPT,
+    latitude: 1.2865,
+    longitude: 103.8065,
+    locationLabel: "Outram Road, Singapore",
+    durationSeconds: 34,
+    retentionQuantity: 1,
+    retentionUnit: "week",
+    expiresAt: "2026-08-18T17:10:00.000Z",
+    status: "approved",
+    createdAt: "2026-08-11T17:10:00.000Z",
+  },
+  {
+    id: "demo-traffic-faded-1",
+    displayName: "Bus Stop",
+    category: "soundscape",
+    theme: "traffic",
+    prompt: SOUNDSCAPE_RECORDING_PROMPT,
+    latitude: 1.2828,
+    longitude: 103.8078,
+    locationLabel: "Neil Road, Singapore",
+    durationSeconds: 31,
+    retentionQuantity: 1,
+    retentionUnit: "day",
+    expiresAt: "2026-06-05T18:15:00.000Z",
+    status: "approved",
+    createdAt: "2026-06-04T18:15:00.000Z",
+  },
+  {
+    id: "demo-music-1",
+    displayName: "Lounge",
+    category: "soundscape",
+    theme: "music",
+    prompt: SOUNDSCAPE_RECORDING_PROMPT,
+    latitude: 1.295,
+    longitude: 103.7865,
+    locationLabel: "one-north Park, Singapore",
+    durationSeconds: 52,
+    retentionQuantity: 1,
+    retentionUnit: "epoch",
+    expiresAt: null,
+    status: "approved",
+    createdAt: "2026-08-12T20:00:00.000Z",
+  },
+  {
+    id: "demo-music-faded-1",
+    displayName: "Busker",
+    category: "soundscape",
+    theme: "music",
+    prompt: SOUNDSCAPE_RECORDING_PROMPT,
+    latitude: 1.2895,
+    longitude: 103.804,
+    locationLabel: "Tiong Bahru, Singapore",
+    durationSeconds: 40,
+    retentionQuantity: 1,
+    retentionUnit: "day",
+    expiresAt: "2026-06-06T19:25:00.000Z",
+    status: "approved",
+    createdAt: "2026-06-05T19:25:00.000Z",
+  },
+  {
+    id: "demo-city-life-1",
+    displayName: "Arcade",
+    category: "soundscape",
+    theme: "city_life",
+    prompt: SOUNDSCAPE_RECORDING_PROMPT,
+    latitude: 1.2985,
+    longitude: 103.811,
+    locationLabel: "Orchard Boulevard, Singapore",
+    durationSeconds: 45,
+    retentionQuantity: 1,
+    retentionUnit: "week",
+    expiresAt: "2026-08-20T13:45:00.000Z",
+    status: "approved",
+    createdAt: "2026-08-13T13:45:00.000Z",
+  },
+  {
+    id: "demo-city-life-faded-1",
+    displayName: "Lift Lobby",
+    category: "soundscape",
+    theme: "city_life",
+    prompt: SOUNDSCAPE_RECORDING_PROMPT,
+    latitude: 1.3015,
+    longitude: 103.7975,
+    locationLabel: "Holland Drive, Singapore",
+    durationSeconds: 36,
+    retentionQuantity: 1,
+    retentionUnit: "day",
+    expiresAt: "2026-06-07T12:15:00.000Z",
+    status: "approved",
+    createdAt: "2026-06-06T12:15:00.000Z",
   },
 ];
 
@@ -910,7 +1085,8 @@ export function supplementTracesWithDemoFallback(liveTraces: Trace[], now: Date 
 }
 
 export function getFadedTraceCopy(trace: Pick<Trace, "theme">) {
-  return `There are traces of ${THEME_BY_KEY[trace.theme].label.toLowerCase()} here.`;
+  const label = trace.theme === "secret" ? "secrets" : THEME_BY_KEY[trace.theme].label.toLowerCase();
+  return `There are traces of ${label} here.`;
 }
 
 export function resolveSignedUrlTtlSeconds(expiresAt: string | null, isApproved: boolean, now: Date = new Date()) {
