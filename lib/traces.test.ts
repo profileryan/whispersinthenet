@@ -95,13 +95,19 @@ test("trace category helpers validate theme/category combinations", () => {
   assert.equal(THEME_BY_KEY.secret.label, "Secret");
   assert.deepEqual(getLeaveThemesForCategory("confession").map((theme) => theme.key), ["longing", "guilt", "pretence", "regret", "secret", "avoidance"]);
   assert.deepEqual(getBrowseThemesForCategory("confession").map((theme) => theme.key), ["longing", "guilt", "regret", "pretence", "secret", "avoidance"]);
+  assert.deepEqual(getLeaveThemesForCategory("soundscape").map((theme) => theme.key), ["soundscape"]);
+  assert.deepEqual(getBrowseThemesForCategory("soundscape").map((theme) => theme.key), ["soundscape"]);
   assert.equal(THEME_BY_KEY.regret.prompts.length, 1);
   assert.equal(THEME_BY_KEY.regret.prompts[0], "What is something you wish you had done differently?");
+  assert.equal(THEME_BY_KEY.soundscape.prompts[0], "What do you hear around you?");
   assert.equal(getCategoryForTheme("hope"), "emotion");
   assert.equal(getCategoryForTheme("avoidance"), "confession");
+  assert.equal(getCategoryForTheme("soundscape"), "soundscape");
   assert.equal(isValidThemeForCategory("hope", "emotion"), true);
   assert.equal(isValidThemeForCategory("hope", "confession"), false);
   assert.equal(isValidThemeForCategory("secret", "confession"), true);
+  assert.equal(isValidThemeForCategory("soundscape", "soundscape"), true);
+  assert.equal(isValidThemeForCategory("soundscape", "emotion"), false);
   assert.equal(isValidThemeForCategory("banana", "emotion"), false);
 });
 
@@ -117,12 +123,13 @@ test("getFadedTraceCopy uses lowercased theme label across categories", () => {
   assert.equal(getFadedTraceCopy({ theme: "anger" } as Pick<Trace, "theme">), "There are traces of anger here.");
   assert.equal(getFadedTraceCopy({ theme: "closure" } as Pick<Trace, "theme">), "There are traces of closure here.");
   assert.equal(getFadedTraceCopy({ theme: "secret" } as Pick<Trace, "theme">), "There are traces of secret here.");
+  assert.equal(getFadedTraceCopy({ theme: "soundscape" } as Pick<Trace, "theme">), "There are traces of soundscape here.");
 });
 
 test("demo traces include active and faded fallback samples across categories", () => {
   const now = new Date("2026-06-09T00:00:00.000Z");
 
-  for (const category of ["emotion", "confession"] as const) {
+  for (const category of ["emotion", "confession", "soundscape"] as const) {
     for (const theme of getLeaveThemesForCategory(category)) {
       const traces = DEMO_TRACES.filter((trace) => trace.category === category && trace.theme === theme.key);
 
@@ -150,8 +157,10 @@ test("demo fallback supplements sparse live data without replacing live traces",
   assert.equal(supplemented[0].id, "live-hope-1");
   assert.equal(supplemented.filter((trace) => trace.id === "live-hope-1").length, 1);
   assert.ok(supplemented.some((trace) => trace.category === "confession"));
+  assert.ok(supplemented.some((trace) => trace.category === "soundscape"));
   assert.ok(supplemented.some((trace) => trace.category === "emotion" && isTraceFaded(trace, now)));
   assert.ok(supplemented.some((trace) => trace.category === "confession" && isTraceFaded(trace, now)));
+  assert.ok(supplemented.some((trace) => trace.category === "soundscape" && isTraceFaded(trace, now)));
 });
 
 test("resolveSignedUrlTtlSeconds caps public approved URLs to remaining lifetime", () => {
@@ -195,6 +204,23 @@ test("validateTraceSubmission accepts valid emotion and confession submissions",
   if (confession.ok) {
     assert.equal(confession.data.category, "confession");
     assert.equal(confession.data.theme, "secret");
+  }
+
+  const soundscape = validateTraceSubmission({
+    displayName: "Field",
+    category: "soundscape",
+    theme: "soundscape",
+    prompt: THEME_BY_KEY.soundscape.prompts[0],
+    latitude: 1.2,
+    longitude: 103.8,
+    durationSeconds: 12,
+    retentionQuantity: 1,
+    retentionUnit: "day",
+  });
+  assert.equal(soundscape.ok, true);
+  if (soundscape.ok) {
+    assert.equal(soundscape.data.category, "soundscape");
+    assert.equal(soundscape.data.theme, "soundscape");
   }
 });
 

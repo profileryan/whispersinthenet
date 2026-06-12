@@ -136,24 +136,27 @@ export function AdminApp() {
             options={[
               { value: "emotion", label: "Emotions" },
               { value: "confession", label: "Confessions" },
+              { value: "soundscape", label: "Soundscapes" },
             ]}
           />
-          <ThemeFilters
-            themes={adminThemes}
-            enabledThemes={enabledThemes}
-            animationKey={adminListenCategory}
-            onToggle={(theme) => {
-              setEnabledThemes((current) => {
-                const next = new Set(current);
-                if (next.has(theme)) {
-                  next.delete(theme);
-                } else {
-                  next.add(theme);
-                }
-                return next;
-              });
-            }}
-          />
+          {adminListenCategory === "soundscape" ? null : (
+            <ThemeFilters
+              themes={adminThemes}
+              enabledThemes={enabledThemes}
+              animationKey={adminListenCategory}
+              onToggle={(theme) => {
+                setEnabledThemes((current) => {
+                  const next = new Set(current);
+                  if (next.has(theme)) {
+                    next.delete(theme);
+                  } else {
+                    next.add(theme);
+                  }
+                  return next;
+                });
+              }}
+            />
+          )}
           </div>
 
           <div className="admin-layout">
@@ -164,7 +167,7 @@ export function AdminApp() {
                   className={selectedTrace?.id === trace.id ? "is-selected" : ""}
                   onClick={() => setSelectedTrace(trace)}
                 >
-                  <span>{trace.category} / {getTraceTheme(trace.theme).label}</span>
+                  <span>{trace.category === "soundscape" ? "soundscape" : `${trace.category} / ${getTraceTheme(trace.theme).label}`}</span>
                   <strong>{trace.displayName}</strong>
                   <em>{trace.status}</em>
                 </button>

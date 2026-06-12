@@ -1,7 +1,7 @@
 create extension if not exists pgcrypto;
 
 do $$ begin
-  create type trace_category as enum ('emotion', 'confession');
+  create type trace_category as enum ('emotion', 'confession', 'soundscape');
 exception
   when duplicate_object then null;
 end $$;
@@ -9,18 +9,21 @@ end $$;
 do $$ begin
   create type trace_theme as enum (
     'hope', 'joy', 'fear', 'sadness', 'closure', 'anger',
-    'longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance'
+    'longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance',
+    'soundscape'
   );
 exception
   when duplicate_object then null;
 end $$;
 
+alter type trace_category add value if not exists 'soundscape';
 alter type trace_theme add value if not exists 'longing';
 alter type trace_theme add value if not exists 'guilt';
 alter type trace_theme add value if not exists 'regret';
 alter type trace_theme add value if not exists 'pretence';
 alter type trace_theme add value if not exists 'secret';
 alter type trace_theme add value if not exists 'avoidance';
+alter type trace_theme add value if not exists 'soundscape';
 
 do $$ begin
   create type trace_status as enum ('pending', 'approved', 'rejected');
@@ -59,6 +62,8 @@ create table if not exists public.traces (
     (category = 'emotion' and theme::text in ('hope', 'joy', 'fear', 'sadness', 'closure', 'anger'))
     or
     (category = 'confession' and theme::text in ('longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance'))
+    or
+    (category = 'soundscape' and theme::text = 'soundscape')
   ),
   constraint traces_retention_expiry_check check (
     (retention_unit = 'epoch' and expires_at is null)
@@ -75,17 +80,14 @@ alter table public.traces add column if not exists retention_quantity integer no
 alter table public.traces add column if not exists retention_unit trace_retention_unit not null default 'epoch';
 alter table public.traces add column if not exists expires_at timestamptz;
 
-do $$ begin
-  if not exists (
-    select 1 from pg_constraint where conname = 'traces_category_theme_check'
-  ) then
-    alter table public.traces add constraint traces_category_theme_check check (
-      (category = 'emotion' and theme::text in ('hope', 'joy', 'fear', 'sadness', 'closure', 'anger'))
-      or
-      (category = 'confession' and theme::text in ('longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance'))
-    );
-  end if;
-end $$;
+alter table public.traces drop constraint if exists traces_category_theme_check;
+alter table public.traces add constraint traces_category_theme_check check (
+  (category = 'emotion' and theme::text in ('hope', 'joy', 'fear', 'sadness', 'closure', 'anger'))
+  or
+  (category = 'confession' and theme::text in ('longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance'))
+  or
+  (category = 'soundscape' and theme::text = 'soundscape')
+);
 
 do $$ begin
   if not exists (

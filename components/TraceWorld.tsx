@@ -393,14 +393,14 @@ export function TraceWorld({ traces, selectedTrace, now, onSelectTrace, onClearS
         const theme = getTraceTheme(trace.theme);
         const selected = selectedTraceId === trace.id;
         const faded = isTraceFaded(trace, currentNow);
-        const color = faded ? "#b8b8b8" : theme.color;
+        const color = faded ? "#9b9b9b" : theme.color;
 
         const sphere = new THREE.Mesh(
           new THREE.SphereGeometry(faded ? (selected ? 0.42 : 0.32) : selected ? 0.62 : 0.48, 32, 32),
           new THREE.MeshStandardMaterial({
             color,
             emissive: color,
-            emissiveIntensity: faded ? (selected ? 0.38 : 0.18) : selected ? 1.35 : 0.85,
+            emissiveIntensity: faded ? (selected ? 0.42 : 0.22) : selected ? 1.35 : 0.85,
             roughness: faded ? 0.82 : 0.35,
           }),
         );

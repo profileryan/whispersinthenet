@@ -171,7 +171,7 @@ function createMarkerElement(trace: Trace, selected: boolean, faded: boolean) {
   const theme = getTraceTheme(trace.theme);
   const element = document.createElement("button");
   element.type = "button";
-  element.style.setProperty("--trace-color", faded ? "#b8b8b8" : theme.color);
+  element.style.setProperty("--trace-color", faded ? "#9b9b9b" : theme.color);
   element.setAttribute("aria-pressed", selected ? "true" : "false");
   element.innerHTML = `
     <span class="trace-map-orb" aria-hidden="true"></span>

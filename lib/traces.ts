@@ -1,4 +1,4 @@
-export type TraceCategory = "emotion" | "confession";
+export type TraceCategory = "emotion" | "confession" | "soundscape";
 export type ThemeKey =
   | "hope"
   | "joy"
@@ -11,7 +11,8 @@ export type ThemeKey =
   | "regret"
   | "pretence"
   | "secret"
-  | "avoidance";
+  | "avoidance"
+  | "soundscape";
 export type ViewMode = "map" | "immersive";
 export type TraceStatus = "pending" | "approved" | "rejected";
 export type TraceRetentionUnit = "hour" | "day" | "week" | "month" | "year" | "decade" | "century" | "millennium" | "epoch";
@@ -216,9 +217,21 @@ const CONFESSION_THEMES = [
   },
 ] satisfies TraceTheme[];
 
+const SOUNDSCAPE_THEMES = [
+  {
+    key: "soundscape",
+    label: "Soundscape",
+    color: "#006d77",
+    textColor: "#ffffff",
+    invitation: "What do you hear around you?",
+    prompts: ["What do you hear around you?"],
+  },
+] satisfies TraceTheme[];
+
 const EMOTION_ORDER = ["hope", "joy", "fear", "sadness", "closure", "anger"] satisfies ThemeKey[];
 const CONFESSION_LEAVE_ORDER = ["longing", "guilt", "pretence", "regret", "secret", "avoidance"] satisfies ThemeKey[];
 const CONFESSION_BROWSE_ORDER = ["longing", "guilt", "regret", "pretence", "secret", "avoidance"] satisfies ThemeKey[];
+const SOUNDSCAPE_ORDER = ["soundscape"] satisfies ThemeKey[];
 
 export const TRACE_GROUPS: TraceGroup[] = [
   { category: "emotion", label: "Emotions", themes: EMOTION_THEMES, leaveOrder: EMOTION_ORDER, browseOrder: EMOTION_ORDER },
@@ -229,6 +242,7 @@ export const TRACE_GROUPS: TraceGroup[] = [
     leaveOrder: CONFESSION_LEAVE_ORDER,
     browseOrder: CONFESSION_BROWSE_ORDER,
   },
+  { category: "soundscape", label: "Soundscapes", themes: SOUNDSCAPE_THEMES, leaveOrder: SOUNDSCAPE_ORDER, browseOrder: SOUNDSCAPE_ORDER },
 ];
 
 export const THEMES: TraceTheme[] = EMOTION_THEMES;
@@ -679,6 +693,38 @@ export const DEMO_TRACES: Trace[] = [
     expiresAt: null,
     status: "approved",
     createdAt: "2026-08-08T12:35:00.000Z",
+  },
+  {
+    id: "demo-soundscape-1",
+    displayName: "Ash",
+    category: "soundscape",
+    theme: "soundscape",
+    prompt: THEME_BY_KEY.soundscape.prompts[0],
+    latitude: 1.2905,
+    longitude: 103.7885,
+    locationLabel: "Tanglin Halt, Singapore",
+    durationSeconds: 37,
+    retentionQuantity: 1,
+    retentionUnit: "week",
+    expiresAt: "2026-08-16T08:00:00.000Z",
+    status: "approved",
+    createdAt: "2026-08-09T08:00:00.000Z",
+  },
+  {
+    id: "demo-soundscape-faded-1",
+    displayName: "Field",
+    category: "soundscape",
+    theme: "soundscape",
+    prompt: THEME_BY_KEY.soundscape.prompts[0],
+    latitude: 1.3005,
+    longitude: 103.8045,
+    locationLabel: "Botanic Gardens, Singapore",
+    durationSeconds: 48,
+    retentionQuantity: 1,
+    retentionUnit: "day",
+    expiresAt: "2026-06-05T08:00:00.000Z",
+    status: "approved",
+    createdAt: "2026-06-04T08:00:00.000Z",
   },
 ];
 

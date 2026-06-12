@@ -210,9 +210,10 @@ export function TracesApp() {
                 { value: "everything", label: "Everything" },
                 { value: "emotion", label: "Emotions" },
                 { value: "confession", label: "Confessions" },
+                { value: "soundscape", label: "Soundscapes" },
               ]}
             />
-            {listenMode === "everything" ? null : (
+            {listenMode === "everything" || listenMode === "soundscape" ? null : (
               <ThemeFilters themes={browseThemes} enabledThemes={enabledThemes} onToggle={toggleTheme} animationKey={listenMode} />
             )}
           </div>

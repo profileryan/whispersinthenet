@@ -247,7 +247,7 @@ button:disabled {
 }
 
 .nav-dropdown.is-open .nav-dropdown-menu {
-  max-height: 150px;
+  max-height: 220px;
   border-top-width: 2px;
   opacity: 1;
   transform: translateY(0) scaleY(1);
@@ -479,10 +479,12 @@ button:disabled {
 .map-trace-marker.is-faded .trace-map-orb {
   width: 20px;
   height: 20px;
-  background: #b8b8b8;
-  border-color: rgba(0, 0, 0, 0.38);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
-  filter: saturate(0) brightness(1.05);
+  background: #9b9b9b;
+  border: 1px solid rgba(40, 40, 40, 0.48);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.42),
+    0 0 0 3px rgba(60, 60, 60, 0.16);
+  filter: saturate(0) brightness(1.02);
 }
 
 .map-trace-marker.is-faded:hover .trace-map-orb,
@@ -490,7 +492,8 @@ button:disabled {
   transform: scale(1.22);
   box-shadow:
     0 0 0 3px rgba(255, 255, 255, 0.55),
-    0 0 16px rgba(180, 180, 180, 0.5);
+    0 0 0 4px rgba(60, 60, 60, 0.2),
+    0 0 16px rgba(155, 155, 155, 0.58);
 }
 
 .trace-glyph {

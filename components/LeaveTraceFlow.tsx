@@ -81,11 +81,25 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
 
   function chooseCategory(nextCategory: TraceCategory) {
     setCategory(nextCategory);
-    setTheme(null);
-    setPromptIndex(null);
+    setTheme(nextCategory === "soundscape" ? "soundscape" : null);
+    setPromptIndex(nextCategory === "soundscape" ? 0 : null);
     setAudioBlob(null);
     setRecordingDurationSeconds(0);
     setMessage("");
+  }
+
+  function goBack() {
+    if (step === FLOW_STEP.NAME) {
+      onClose();
+      return;
+    }
+
+    if (step === FLOW_STEP.RECORD && category === "soundscape") {
+      setStep(FLOW_STEP.CATEGORY);
+      return;
+    }
+
+    setStep((current) => Math.max(FLOW_STEP.NAME, current - 1));
   }
 
   function chooseTheme(nextTheme: ThemeKey) {
@@ -162,7 +176,7 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
 
   return (
     <section className="leave-flow" aria-label="Leave a trace">
-      <button className="back-button" onClick={step === FLOW_STEP.NAME ? onClose : () => setStep((current) => Math.max(FLOW_STEP.NAME, current - 1))}>
+      <button className="back-button" onClick={goBack}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/back-arrow.png"
@@ -217,13 +231,16 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
           <h2>The city is ever-shifting, but humanity persists. What would you like to leave a trace of today?</h2>
           <div className="type-choice-grid">
             <button type="button" className={category === "emotion" ? "is-selected" : ""} onClick={() => chooseCategory("emotion")}>
-              <strong>An Emotion</strong>
+              <strong>A Fleeting Emotion</strong>
             </button>
             <button type="button" className={category === "confession" ? "is-selected" : ""} onClick={() => chooseCategory("confession")}>
-              <strong>A Confession</strong>
+              <strong>A Pressing Confession</strong>
+            </button>
+            <button type="button" className={category === "soundscape" ? "is-selected" : ""} onClick={() => chooseCategory("soundscape")}>
+              <strong>A Present Soundscape</strong>
             </button>
           </div>
-          <button className="primary-action" disabled={!category} onClick={() => setStep(FLOW_STEP.THEME)}>
+          <button className="primary-action" disabled={!category} onClick={() => setStep(category === "soundscape" ? FLOW_STEP.RECORD : FLOW_STEP.THEME)}>
             Next
           </button>
         </div>
@@ -553,15 +570,19 @@ function RecordingStep({
   }
 
   return (
-    <div className={`flow-card record-step${category === "confession" ? " is-single-prompt" : ""}`}>
-      <h2 className="welcome-heading">
-        Your <span>{categoryLabel}</span> {welcomeText}
-      </h2>
+    <div className={`flow-card record-step${category !== "emotion" ? " is-single-prompt" : ""}`}>
+      {category === "soundscape" ? (
+        <h2 className="welcome-heading">THIS MOMENT IS PRECIOUS...</h2>
+      ) : (
+        <h2 className="welcome-heading">
+          Your <span>{categoryLabel}</span> {welcomeText}
+        </h2>
+      )}
       <div className="recording-prompt">
         <p key={prompt} className="recording-question">
           {prompt}
         </p>
-        {category !== "confession" ? (
+        {category === "emotion" ? (
           <button type="button" className="different-question-button" disabled={isRecording} onClick={onDifferentQuestion}>
             Different Question
           </button>
