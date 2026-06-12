@@ -1242,6 +1242,12 @@ button:disabled {
   text-align: center;
 }
 
+.record-step.is-single-prompt .recording-prompt {
+  min-height: 0;
+  padding: 30px 42px;
+  align-content: center;
+}
+
 .recording-prompt p {
   margin: 0;
   max-width: 760px;
@@ -1851,6 +1857,11 @@ button:disabled {
     min-height: 210px;
     border-radius: 22px;
     padding: 26px 18px 16px;
+  }
+
+  .record-step.is-single-prompt .recording-prompt {
+    min-height: 0;
+    padding: 24px 18px;
   }
 
   .recording-prompt p {
