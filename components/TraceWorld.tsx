@@ -122,7 +122,7 @@ const CAMERA_DEBUG_MAX_SAMPLES = 360;
 const MOVEMENT_BROADCAST_INTERVAL_MS = 120;
 const SETTLED_PRESENCE_DELAY_MS = 550;
 const VISITOR_COLORS = ["#f8ffb8", "#b8f6ff", "#d8b8ff", "#ffcfb8", "#b8ffd1", "#fff0b8"];
-const WORLD_BACKGROUND_COLOR = "#ebdfd5";
+const WORLD_BACKGROUND_COLOR = "#EFEFEF";
 
 export function TraceWorld({ traces, selectedTrace, now, onSelectTrace, onClearSelection }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
