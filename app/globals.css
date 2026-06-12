@@ -446,10 +446,20 @@ button:disabled {
   height: 40px;
   display: grid;
   place-items: center;
+  z-index: 2;
 }
 
 .map-trace-marker.is-selected {
+  z-index: 3;
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--trace-color), white 46%));
+}
+
+.map-trace-marker.is-faded {
+  z-index: 0;
+}
+
+.map-trace-marker.is-faded.is-selected {
+  z-index: 1;
 }
 
 .trace-map-orb {

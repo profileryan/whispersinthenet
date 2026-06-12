@@ -81,26 +81,28 @@ export function TraceMap({ traces, selectedTrace, now, onSelectTrace, onClearSel
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
-    traces.forEach((trace) => {
-      const faded = isTraceFaded(trace, now);
-      const theme = getTraceTheme(trace.theme);
-      const element = createMarkerElement(trace, selectedTrace?.id === trace.id, faded);
-      element.className = `map-trace-marker ${selectedTrace?.id === trace.id ? "is-selected" : ""} ${faded ? "is-faded" : ""}`;
-      element.setAttribute(
-        "aria-label",
-        faded ? `Faded ${theme.label} trace from ${formatTraceDate(trace.createdAt)}` : `Listen to ${theme.label} trace by ${trace.displayName}`,
-      );
-      element.addEventListener("click", (event) => {
-        event.stopPropagation();
-        onSelectTrace(trace);
+    [...traces]
+      .sort((left, right) => Number(isTraceFaded(left, now)) - Number(isTraceFaded(right, now)))
+      .forEach((trace) => {
+        const faded = isTraceFaded(trace, now);
+        const theme = getTraceTheme(trace.theme);
+        const element = createMarkerElement(trace, selectedTrace?.id === trace.id, faded);
+        element.className = `map-trace-marker ${selectedTrace?.id === trace.id ? "is-selected" : ""} ${faded ? "is-faded" : ""}`;
+        element.setAttribute(
+          "aria-label",
+          faded ? `Faded ${theme.label} trace from ${formatTraceDate(trace.createdAt)}` : `Listen to ${theme.label} trace by ${trace.displayName}`,
+        );
+        element.addEventListener("click", (event) => {
+          event.stopPropagation();
+          onSelectTrace(trace);
+        });
+
+        const marker = new maplibregl.Marker({ element, anchor: "center" })
+          .setLngLat([trace.longitude, trace.latitude])
+          .addTo(map);
+
+        markersRef.current.push(marker);
       });
-
-      const marker = new maplibregl.Marker({ element, anchor: "center" })
-        .setLngLat([trace.longitude, trace.latitude])
-        .addTo(map);
-
-      markersRef.current.push(marker);
-    });
   }, [now, onSelectTrace, selectedTrace?.id, traces]);
 
   useEffect(() => {
