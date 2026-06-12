@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl, { type Map, type Marker } from "maplibre-gl";
+import { getTraceMapStyle } from "@/lib/mapStyle";
 import { RETENTION_UNITS, SINGAPORE_CENTER, getLeaveThemesForCategory, getTraceTheme, type ThemeKey, type TraceCategory, type TraceRetentionUnit } from "@/lib/traces";
 
 type Props = {
@@ -616,18 +617,7 @@ function LocationPicker({ value, onChange }: { value: LocationValue; onChange: (
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: process.env.NEXT_PUBLIC_MAP_STYLE_URL || {
-        version: 8,
-        sources: {
-          osm: {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap contributors",
-          },
-        },
-        layers: [{ id: "osm", type: "raster", source: "osm" }],
-      },
+      style: getTraceMapStyle("picker"),
       center: [value.longitude, value.latitude],
       zoom: 15,
     });

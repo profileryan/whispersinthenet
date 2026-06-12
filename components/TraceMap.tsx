@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import maplibregl, { type Map, type Marker } from "maplibre-gl";
 import { getTraceMapMarkerPoint } from "@/components/traceMapPlacement";
+import { getTraceMapStyle } from "@/lib/mapStyle";
 import { formatTraceDate, getTraceTheme, isTraceFaded, SINGAPORE_CENTER, type Trace } from "@/lib/traces";
 
 type Props = {
@@ -36,18 +37,7 @@ export function TraceMap({ traces, selectedTrace, now, onSelectTrace, onClearSel
 
     mapRef.current = new maplibregl.Map({
       container: containerRef.current,
-      style: process.env.NEXT_PUBLIC_MAP_STYLE_URL || {
-        version: 8,
-        sources: {
-          osm: {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap contributors",
-          },
-        },
-        layers: [{ id: "osm", type: "raster", source: "osm" }],
-      },
+      style: getTraceMapStyle("browse"),
       center: [SINGAPORE_CENTER.longitude, SINGAPORE_CENTER.latitude],
       zoom: 11,
       pitch: 0,
