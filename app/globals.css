@@ -1163,6 +1163,18 @@ button:disabled {
   perspective: 1200px;
 }
 
+.theme-step.is-soundscape .prompt-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.theme-step.is-soundscape .prompt-grid button {
+  flex: 1 1 160px;
+  max-width: 190px;
+}
+
 .prompt-grid button.is-selected {
   background: transparent;
   color: var(--theme-text);
@@ -1210,7 +1222,16 @@ button:disabled {
 }
 
 .theme-card-face strong {
+  max-width: 100%;
   font-size: clamp(1.2rem, 2vw, 2rem);
+  line-height: 1.05;
+  text-align: center;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.theme-step.is-soundscape .theme-card-face strong {
+  font-size: clamp(1.05rem, 1.55vw, 1.55rem);
 }
 
 .theme-card-back span {
@@ -1830,6 +1851,11 @@ button:disabled {
 
   .prompt-grid {
     grid-template-columns: 1fr;
+  }
+
+  .theme-step.is-soundscape .prompt-grid button {
+    max-width: none;
+    flex-basis: 100%;
   }
 
   .leave-flow {

@@ -267,7 +267,7 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
       ) : null}
 
       {step === FLOW_STEP.THEME ? (
-        <div className="theme-step">
+        <div className={`theme-step${category === "soundscape" ? " is-soundscape" : ""}`}>
           <h2>
             {category === "soundscape"
               ? "Which of these best describes your soundscape?"
