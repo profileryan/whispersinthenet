@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LeaveTraceFlow } from "@/components/LeaveTraceFlow";
 import { ListeningPanel } from "@/components/ListeningPanel";
 import { ModeToggle, NavDropdown } from "@/components/ModeToggle";
+import { ReplyTraceFlow } from "@/components/ReplyTraceFlow";
 import { ThemeFilters } from "@/components/ThemeFilters";
 import { TraceMap } from "@/components/TraceMap";
 import { TraceWorld } from "@/components/TraceWorld";
 import {
   DEMO_TRACES,
+  buildTraceThreads,
   getBrowseThemesForCategory,
   type ThemeKey,
   type Trace,
@@ -30,6 +32,7 @@ export function TracesApp() {
   const [panelTrace, setPanelTrace] = useState<Trace | null>(null);
   const [isPanelClosing, setIsPanelClosing] = useState(false);
   const [isLeavingTrace, setIsLeavingTrace] = useState(false);
+  const [replyTargetTrace, setReplyTargetTrace] = useState<Trace | null>(null);
   const [loadState, setLoadState] = useState<"demo" | "live" | "error">("demo");
   const [notice, setNotice] = useState("");
   const [now, setNow] = useState(() => new Date());
@@ -42,6 +45,28 @@ export function TracesApp() {
     return () => window.clearInterval(timer);
   }, []);
 
+  const loadApprovedTraces = useCallback(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from("traces")
+      .select("*")
+      .eq("status", "approved")
+      .order("created_at", { ascending: false });
+
+    if (error || !data?.length) {
+      setLoadState(error ? "error" : "demo");
+      return false;
+    }
+
+    setTraces(supplementTracesWithDemoFallback(data.map((row) => normalizeTrace(row))));
+    setLoadState("live");
+    return true;
+  }, []);
+
   useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) {
@@ -49,47 +74,31 @@ export function TracesApp() {
     }
 
     let active = true;
-    supabase
-      .from("traces")
-      .select("*")
-      .eq("status", "approved")
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (!active) {
-          return;
-        }
+    void loadApprovedTraces().then((loaded) => {
+      if (!active || loaded) {
+        return;
+      }
+      setTraces(DEMO_TRACES);
+    });
 
-        if (error || !data?.length) {
-          setLoadState(error ? "error" : "demo");
-          return;
+    const refreshApprovedTraces = () => {
+      void loadApprovedTraces().then((loaded) => {
+        if (active && !loaded) {
+          setTraces(DEMO_TRACES);
         }
-
-        const liveTraces = supplementTracesWithDemoFallback(data.map((row) => normalizeTrace(row)));
-        setTraces(liveTraces);
-        setLoadState("live");
       });
+    };
 
     const channel = supabase
       .channel("public-approved-traces")
-      .on("postgres_changes", { event: "*", schema: "public", table: "traces" }, () => {
-        supabase
-          .from("traces")
-          .select("*")
-          .eq("status", "approved")
-          .order("created_at", { ascending: false })
-          .then(({ data }) => {
-            if (active && data?.length) {
-              setTraces(supplementTracesWithDemoFallback(data.map((row) => normalizeTrace(row))));
-            }
-          });
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "traces" }, refreshApprovedTraces)
       .subscribe();
 
     return () => {
       active = false;
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [loadApprovedTraces]);
 
   const browseThemes = useMemo(() => (listenMode === "everything" ? [] : getBrowseThemesForCategory(listenMode)), [listenMode]);
 
@@ -97,12 +106,20 @@ export function TracesApp() {
     () => (listenMode === "everything" ? traces : traces.filter((trace) => trace.category === listenMode && enabledThemes.has(trace.theme))),
     [enabledThemes, listenMode, traces],
   );
+  const traceThreads = useMemo(() => buildTraceThreads(filteredTraces), [filteredTraces]);
+  const rootTraces = useMemo(() => traceThreads.map((thread) => thread.root), [traceThreads]);
+  const threadByRootId = useMemo(() => new Map(traceThreads.map((thread) => [thread.root.id, thread])), [traceThreads]);
+  const replyCountByTraceId = useMemo(
+    () => new Map(traceThreads.map((thread) => [thread.root.id, thread.replyCount])),
+    [traceThreads],
+  );
 
   function changeListenMode(mode: ListenMode) {
     setListenMode(mode);
     setEnabledThemes(mode === "everything" ? new Set() : new Set(getBrowseThemesForCategory(mode).map((theme) => theme.key)));
     setSelectedTrace(null);
     setPanelTrace(null);
+    setReplyTargetTrace(null);
   }
 
   useEffect(() => {
@@ -110,11 +127,12 @@ export function TracesApp() {
   }, [selectedTrace]);
 
   useEffect(() => {
-    if (selectedTrace && !filteredTraces.some((trace) => trace.id === selectedTrace.id)) {
+    if (selectedTrace && !rootTraces.some((trace) => trace.id === selectedTrace.id)) {
       setSelectedTrace(null);
       setPanelTrace(null);
+      setReplyTargetTrace(null);
     }
-  }, [filteredTraces, selectedTrace]);
+  }, [rootTraces, selectedTrace]);
 
   useEffect(() => {
     return () => {
@@ -221,16 +239,17 @@ export function TracesApp() {
           <div className="view-stage" data-trace-selected={selectedTrace ? "true" : undefined}>
             {mode === "map" ? (
               <TraceMap
-                traces={filteredTraces}
+                traces={rootTraces}
                 selectedTrace={selectedTrace}
                 now={now}
+                replyCountByTraceId={replyCountByTraceId}
                 onSelectTrace={selectTrace}
                 onClearSelection={dismissSelectedTrace}
                 onTraceFocusComplete={revealPanelForTrace}
               />
             ) : (
               <TraceWorld
-                traces={filteredTraces}
+                traces={rootTraces}
                 selectedTrace={selectedTrace}
                 now={now}
                 onSelectTrace={selectTrace}
@@ -239,12 +258,31 @@ export function TracesApp() {
             )}
 
             {panelTrace ? (
-              <ListeningPanel trace={panelTrace} now={now} isClosing={isPanelClosing} onDismiss={dismissSelectedTrace} />
+              <ListeningPanel
+                trace={panelTrace}
+                replies={threadByRootId.get(panelTrace.id)?.replies ?? []}
+                now={now}
+                isClosing={isPanelClosing}
+                onDismiss={dismissSelectedTrace}
+                onReply={() => setReplyTargetTrace(panelTrace)}
+              />
             ) : null}
 
             <button className="leave-trace-button" onClick={() => setIsLeavingTrace(true)}>
               Leave A Trace
             </button>
+
+            {replyTargetTrace ? (
+              <ReplyTraceFlow
+                trace={replyTargetTrace}
+                onClose={() => setReplyTargetTrace(null)}
+                onComplete={() => {
+                  setReplyTargetTrace(null);
+                  setNotice("Your response has joined the trace.");
+                  void loadApprovedTraces();
+                }}
+              />
+            ) : null}
           </div>
 
           {notice ? <p className="submission-notice">{notice}</p> : null}

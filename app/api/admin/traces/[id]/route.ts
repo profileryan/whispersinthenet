@@ -25,19 +25,19 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const supabase = createServerSupabase();
   if (status === "rejected") {
-    const { data: trace, error: lookupError } = await supabase
+    const { data: traces, error: lookupError } = await supabase
       .from("traces")
       .select("id,audio_path")
-      .eq("id", id)
-      .single();
+      .or(`id.eq.${id},root_trace_id.eq.${id}`);
 
-    if (lookupError || !trace) {
+    if (lookupError || !traces?.length) {
       return NextResponse.json({ error: lookupError?.message ?? "Trace not found." }, { status: 404 });
     }
 
-    if (trace.audio_path) {
+    const audioPaths = traces.map((trace) => trace.audio_path).filter((path): path is string => Boolean(path));
+    if (audioPaths.length) {
       const bucket = process.env.TRACE_AUDIO_BUCKET || "trace-audio";
-      const { error: removeAudioError } = await supabase.storage.from(bucket).remove([trace.audio_path]);
+      const { error: removeAudioError } = await supabase.storage.from(bucket).remove(audioPaths);
       if (removeAudioError) {
         return NextResponse.json({ error: removeAudioError.message }, { status: 500 });
       }

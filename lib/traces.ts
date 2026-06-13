@@ -24,6 +24,8 @@ export type TraceRetentionUnit = "hour" | "day" | "week" | "month" | "year" | "d
 
 export type Trace = {
   id: string;
+  parentTraceId?: string | null;
+  rootTraceId?: string | null;
   displayName: string;
   category: TraceCategory;
   theme: ThemeKey;
@@ -42,6 +44,12 @@ export type Trace = {
   expiresAt?: string | null;
   status: TraceStatus;
   createdAt: string;
+};
+
+export type TraceThread = {
+  root: Trace;
+  replies: Trace[];
+  replyCount: number;
 };
 
 export const RETENTION_UNITS: Array<{ key: TraceRetentionUnit; label: string }> = [
@@ -468,6 +476,42 @@ export const DEMO_TRACES: Trace[] = [
     expiresAt: "2026-08-30T18:20:00.000Z",
     status: "approved",
     createdAt: "2026-07-30T18:20:00.000Z",
+  },
+  {
+    id: "demo-closure-1-reply-1",
+    parentTraceId: "demo-closure-1",
+    rootTraceId: "demo-closure-1",
+    displayName: "Genevieve S.",
+    category: "emotion",
+    theme: "closure",
+    prompt: THEME_BY_KEY.closure.prompts[0],
+    latitude: 1.289,
+    longitude: 103.795,
+    locationLabel: "Dawson, Singapore",
+    durationSeconds: 24,
+    retentionQuantity: 1,
+    retentionUnit: "month",
+    expiresAt: "2026-08-30T18:20:00.000Z",
+    status: "approved",
+    createdAt: "2026-07-31T09:25:00.000Z",
+  },
+  {
+    id: "demo-closure-1-reply-2",
+    parentTraceId: "demo-closure-1",
+    rootTraceId: "demo-closure-1",
+    displayName: "Tomas Lee",
+    category: "emotion",
+    theme: "closure",
+    prompt: THEME_BY_KEY.closure.prompts[0],
+    latitude: 1.289,
+    longitude: 103.795,
+    locationLabel: "Dawson, Singapore",
+    durationSeconds: 31,
+    retentionQuantity: 1,
+    retentionUnit: "month",
+    expiresAt: "2026-08-30T18:20:00.000Z",
+    status: "approved",
+    createdAt: "2026-08-01T11:40:00.000Z",
   },
   {
     id: "demo-closure-faded-1",
@@ -1056,6 +1100,46 @@ export function isTraceFaded(trace: Pick<Trace, "expiresAt">, now: Date = new Da
   return Boolean(trace.expiresAt && new Date(trace.expiresAt).getTime() <= now.getTime());
 }
 
+export function isTraceReply(trace: Pick<Trace, "rootTraceId" | "parentTraceId">) {
+  return Boolean(trace.rootTraceId || trace.parentTraceId);
+}
+
+export function buildTraceThreads(traces: Trace[]): TraceThread[] {
+  const roots = traces.filter((trace) => !isTraceReply(trace));
+  const rootIds = new Set(roots.map((trace) => trace.id));
+  const threadByRootId = new Map(
+    roots.map((trace) => [
+      trace.id,
+      {
+        root: trace,
+        replies: [] as Trace[],
+        replyCount: 0,
+      },
+    ]),
+  );
+
+  for (const trace of traces) {
+    if (!isTraceReply(trace)) {
+      continue;
+    }
+
+    const rootId = trace.rootTraceId ?? trace.parentTraceId;
+    if (!rootId || !rootIds.has(rootId)) {
+      continue;
+    }
+
+    threadByRootId.get(rootId)?.replies.push(trace);
+  }
+
+  return Array.from(threadByRootId.values())
+    .map((thread) => ({
+      ...thread,
+      replies: thread.replies.sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()),
+      replyCount: thread.replies.length,
+    }))
+    .sort((left, right) => new Date(right.root.createdAt).getTime() - new Date(left.root.createdAt).getTime());
+}
+
 export function supplementTracesWithDemoFallback(liveTraces: Trace[], now: Date = new Date()) {
   if (!liveTraces.length) {
     return DEMO_TRACES;
@@ -1108,6 +1192,8 @@ export function normalizeTrace(row: Record<string, unknown>): Trace {
 
   return {
     id: String(row.id),
+    parentTraceId: row.parent_trace_id || row.parentTraceId ? String(row.parent_trace_id ?? row.parentTraceId) : null,
+    rootTraceId: row.root_trace_id || row.rootTraceId ? String(row.root_trace_id ?? row.rootTraceId) : null,
     displayName: String(row.display_name ?? row.displayName ?? "Anonymous"),
     category,
     theme,

@@ -10,12 +10,13 @@ type Props = {
   traces: Trace[];
   selectedTrace: Trace | null;
   now: Date;
+  replyCountByTraceId?: globalThis.Map<string, number>;
   onSelectTrace: (trace: Trace) => void;
   onClearSelection: () => void;
   onTraceFocusComplete?: (trace: Trace) => void;
 };
 
-export function TraceMap({ traces, selectedTrace, now, onSelectTrace, onClearSelection, onTraceFocusComplete }: Props) {
+export function TraceMap({ traces, selectedTrace, now, replyCountByTraceId, onSelectTrace, onClearSelection, onTraceFocusComplete }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
   const markersRef = useRef<Marker[]>([]);
@@ -86,11 +87,17 @@ export function TraceMap({ traces, selectedTrace, now, onSelectTrace, onClearSel
       .forEach((trace) => {
         const faded = isTraceFaded(trace, now);
         const theme = getTraceTheme(trace.theme);
-        const element = createMarkerElement(trace, selectedTrace?.id === trace.id, faded);
+        const replyCount = replyCountByTraceId?.get(trace.id) ?? 0;
+        const element = createMarkerElement(trace, selectedTrace?.id === trace.id, faded, replyCount);
         element.className = `map-trace-marker ${selectedTrace?.id === trace.id ? "is-selected" : ""} ${faded ? "is-faded" : ""}`;
+        element.dataset.replyCount = String(replyCount);
         element.setAttribute(
           "aria-label",
-          faded ? `Faded ${theme.label} trace from ${formatTraceDate(trace.createdAt)}` : `Listen to ${theme.label} trace by ${trace.displayName}`,
+          faded
+            ? `Faded ${theme.label} trace from ${formatTraceDate(trace.createdAt)}`
+            : replyCount
+              ? `Listen to ${theme.label} trace by ${trace.displayName} with ${replyCount} response${replyCount === 1 ? "" : "s"}`
+              : `Listen to ${theme.label} trace by ${trace.displayName}`,
         );
         element.addEventListener("click", (event) => {
           event.stopPropagation();
@@ -103,7 +110,7 @@ export function TraceMap({ traces, selectedTrace, now, onSelectTrace, onClearSel
 
         markersRef.current.push(marker);
       });
-  }, [now, onSelectTrace, selectedTrace?.id, traces]);
+  }, [now, onSelectTrace, replyCountByTraceId, selectedTrace?.id, traces]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -169,14 +176,23 @@ function focusTraceMarker(map: Map, trace: Trace) {
   return focusDuration;
 }
 
-function createMarkerElement(trace: Trace, selected: boolean, faded: boolean) {
+function createMarkerElement(trace: Trace, selected: boolean, faded: boolean, replyCount: number) {
   const theme = getTraceTheme(trace.theme);
   const element = document.createElement("button");
   element.type = "button";
   element.style.setProperty("--trace-color", faded ? "#9b9b9b" : theme.color);
+  element.style.setProperty("--thread-scale", String(getThreadOrbScale(replyCount)));
   element.setAttribute("aria-pressed", selected ? "true" : "false");
   element.innerHTML = `
     <span class="trace-map-orb" aria-hidden="true"></span>
   `;
   return element;
+}
+
+function getThreadOrbScale(replyCount: number) {
+  if (replyCount <= 0) {
+    return 1;
+  }
+
+  return Math.min(1.42, 1 + Math.log2(replyCount + 1) * 0.13);
 }

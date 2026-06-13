@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildTraceThreads,
   calculateExpiresAt,
   DEMO_TRACES,
   getBrowseThemesForCategory,
@@ -8,6 +9,7 @@ import {
   getFadedTraceCopy,
   getLeaveThemesForCategory,
   isTraceFaded,
+  isTraceReply,
   isValidThemeForCategory,
   normalizeTrace,
   THEME_BY_KEY,
@@ -70,6 +72,91 @@ test("normalizeTrace defaults old rows to epoch retention", () => {
   assert.equal(trace.retentionQuantity, 1);
   assert.equal(trace.retentionUnit, "epoch");
   assert.equal(trace.expiresAt, null);
+});
+
+test("normalizeTrace reads reply linkage fields", () => {
+  const trace = normalizeTrace({
+    id: "reply-1",
+    parent_trace_id: "root-1",
+    root_trace_id: "root-1",
+    display_name: "Ada",
+    theme: "hope",
+    prompt: "Prompt",
+    latitude: 1,
+    longitude: 2,
+    status: "approved",
+    created_at: "2026-01-02T03:04:05.000Z",
+  });
+
+  assert.equal(trace.parentTraceId, "root-1");
+  assert.equal(trace.rootTraceId, "root-1");
+  assert.equal(isTraceReply(trace), true);
+});
+
+test("buildTraceThreads groups replies under roots and excludes orphans", () => {
+  const root = normalizeTrace({
+    id: "root-1",
+    display_name: "Root",
+    theme: "closure",
+    prompt: THEME_BY_KEY.closure.prompts[0],
+    latitude: 1,
+    longitude: 2,
+    status: "approved",
+    created_at: "2026-01-02T03:04:05.000Z",
+  });
+  const laterRoot = normalizeTrace({
+    id: "root-2",
+    display_name: "Later",
+    theme: "hope",
+    prompt: THEME_BY_KEY.hope.prompts[0],
+    latitude: 1,
+    longitude: 2,
+    status: "approved",
+    created_at: "2026-01-03T03:04:05.000Z",
+  });
+  const replyLater = normalizeTrace({
+    id: "reply-2",
+    parent_trace_id: "root-1",
+    root_trace_id: "root-1",
+    display_name: "B",
+    theme: "closure",
+    prompt: THEME_BY_KEY.closure.prompts[0],
+    latitude: 1,
+    longitude: 2,
+    status: "approved",
+    created_at: "2026-01-02T05:04:05.000Z",
+  });
+  const replyEarlier = normalizeTrace({
+    id: "reply-1",
+    parent_trace_id: "root-1",
+    root_trace_id: "root-1",
+    display_name: "A",
+    theme: "closure",
+    prompt: THEME_BY_KEY.closure.prompts[0],
+    latitude: 1,
+    longitude: 2,
+    status: "approved",
+    created_at: "2026-01-02T04:04:05.000Z",
+  });
+  const orphan = normalizeTrace({
+    id: "orphan-1",
+    parent_trace_id: "missing-root",
+    root_trace_id: "missing-root",
+    display_name: "Orphan",
+    theme: "closure",
+    prompt: THEME_BY_KEY.closure.prompts[0],
+    latitude: 1,
+    longitude: 2,
+    status: "approved",
+    created_at: "2026-01-02T06:04:05.000Z",
+  });
+
+  const threads = buildTraceThreads([root, replyLater, orphan, laterRoot, replyEarlier]);
+
+  assert.deepEqual(threads.map((thread) => thread.root.id), ["root-2", "root-1"]);
+  assert.equal(threads[1].replyCount, 2);
+  assert.deepEqual(threads[1].replies.map((reply) => reply.id), ["reply-1", "reply-2"]);
+  assert.equal(threads.some((thread) => thread.replies.some((reply) => reply.id === "orphan-1")), false);
 });
 
 

@@ -63,6 +63,8 @@ create table if not exists public.traces (
   created_at timestamptz not null default now(),
   reviewed_at timestamptz,
   reviewed_by text,
+  parent_trace_id uuid references public.traces(id) on delete cascade,
+  root_trace_id uuid references public.traces(id) on delete cascade,
   constraint traces_category_theme_check check (
     (category = 'emotion' and theme::text in ('hope', 'joy', 'fear', 'sadness', 'closure', 'anger'))
     or
@@ -84,6 +86,8 @@ alter table public.traces add column if not exists audio_format text;
 alter table public.traces add column if not exists retention_quantity integer not null default 1 check (retention_quantity between 1 and 99);
 alter table public.traces add column if not exists retention_unit trace_retention_unit not null default 'epoch';
 alter table public.traces add column if not exists expires_at timestamptz;
+alter table public.traces add column if not exists parent_trace_id uuid references public.traces(id) on delete cascade;
+alter table public.traces add column if not exists root_trace_id uuid references public.traces(id) on delete cascade;
 
 alter table public.traces drop constraint if exists traces_category_theme_check;
 alter table public.traces add constraint traces_category_theme_check check (
@@ -109,6 +113,8 @@ end $$;
 drop index if exists traces_public_browse_idx;
 create index if not exists traces_public_browse_idx on public.traces (status, category, theme, created_at desc);
 create index if not exists traces_public_expiry_idx on public.traces (status, expires_at);
+create index if not exists traces_public_roots_idx on public.traces (status, category, theme, created_at desc) where root_trace_id is null;
+create index if not exists traces_public_thread_idx on public.traces (status, root_trace_id, created_at asc) where root_trace_id is not null;
 
 alter table public.traces enable row level security;
 

@@ -6,7 +6,7 @@ import { ListeningPanel } from "@/components/ListeningPanel";
 import { NavDropdown } from "@/components/ModeToggle";
 import { ThemeFilters } from "@/components/ThemeFilters";
 import { getSupabaseClient, isClientSupabaseConfigured } from "@/lib/supabaseClient";
-import { getBrowseThemesForCategory, getTraceTheme, type ThemeKey, type Trace, type TraceCategory, normalizeTrace } from "@/lib/traces";
+import { getBrowseThemesForCategory, getTraceTheme, isTraceReply, type ThemeKey, type Trace, type TraceCategory, normalizeTrace } from "@/lib/traces";
 
 export function AdminApp() {
   const supabase = useMemo(() => getSupabaseClient(), []);
@@ -165,7 +165,13 @@ export function AdminApp() {
                   className={selectedTrace?.id === trace.id ? "is-selected" : ""}
                   onClick={() => setSelectedTrace(trace)}
                 >
-                  <span>{trace.category === "soundscape" ? `soundscape / ${getTraceTheme(trace.theme).label}` : `${trace.category} / ${getTraceTheme(trace.theme).label}`}</span>
+                  <span>
+                    {isTraceReply(trace)
+                      ? `response / ${getTraceTheme(trace.theme).label}`
+                      : trace.category === "soundscape"
+                        ? `soundscape / ${getTraceTheme(trace.theme).label}`
+                        : `${trace.category} / ${getTraceTheme(trace.theme).label}`}
+                  </span>
                   <strong>{trace.displayName}</strong>
                   <em>{trace.status}</em>
                 </button>
