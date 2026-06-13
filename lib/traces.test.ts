@@ -249,6 +249,7 @@ test("demo fallback supplements sparse live data without replacing live traces",
   assert.ok(supplemented.some((trace) => trace.category === "emotion" && isTraceFaded(trace, now)));
   assert.ok(supplemented.some((trace) => trace.category === "confession" && isTraceFaded(trace, now)));
   assert.ok(supplemented.some((trace) => trace.category === "soundscape" && isTraceFaded(trace, now)));
+  assert.ok(buildTraceThreads(supplemented).some((thread) => thread.root.id === "demo-closure-1" && thread.replyCount === 2));
 });
 
 test("resolveSignedUrlTtlSeconds caps public approved URLs to remaining lifetime", () => {

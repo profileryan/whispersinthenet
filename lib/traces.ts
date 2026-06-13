@@ -1147,6 +1147,27 @@ export function supplementTracesWithDemoFallback(liveTraces: Trace[], now: Date 
 
   const covered = new Set(liveTraces.map((trace) => `${trace.category}:${trace.theme}:${isTraceFaded(trace, now) ? "faded" : "active"}`));
   const supplemented = [...liveTraces];
+  const includedIds = new Set(supplemented.map((trace) => trace.id));
+
+  function addDemoTraceWithReplies(trace: Trace) {
+    if (includedIds.has(trace.id)) {
+      return;
+    }
+
+    supplemented.push(trace);
+    includedIds.add(trace.id);
+
+    if (isTraceReply(trace)) {
+      return;
+    }
+
+    for (const reply of DEMO_TRACES.filter((demoTrace) => demoTrace.rootTraceId === trace.id)) {
+      if (!includedIds.has(reply.id)) {
+        supplemented.push(reply);
+        includedIds.add(reply.id);
+      }
+    }
+  }
 
   for (const category of TRACE_GROUPS.map((group) => group.category)) {
     for (const theme of getLeaveThemesForCategory(category)) {
@@ -1158,10 +1179,17 @@ export function supplementTracesWithDemoFallback(liveTraces: Trace[], now: Date 
 
         const demoTrace = DEMO_TRACES.find((trace) => trace.category === category && trace.theme === theme.key && isTraceFaded(trace, now) === faded);
         if (demoTrace) {
-          supplemented.push(demoTrace);
+          addDemoTraceWithReplies(demoTrace);
           covered.add(key);
         }
       }
+    }
+  }
+
+  if (!buildTraceThreads(supplemented).some((thread) => thread.replyCount > 0)) {
+    const demoThreadRoot = DEMO_TRACES.find((trace) => trace.id === "demo-closure-1");
+    if (demoThreadRoot) {
+      addDemoTraceWithReplies(demoThreadRoot);
     }
   }
 

@@ -54,6 +54,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Replies attach to the original trace." }, { status: 400 });
   }
 
+  if (rootTrace.category !== "emotion") {
+    return NextResponse.json({ ok: false, error: "Responses are open for emotion traces only." }, { status: 400 });
+  }
+
   if (isTraceFaded(rootTrace, createdAt)) {
     return NextResponse.json({ ok: false, error: "This trace has already faded." }, { status: 410 });
   }

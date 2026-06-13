@@ -216,6 +216,16 @@ export function TracesApp() {
             setNotice("Your trace is waiting for review.");
           }}
         />
+      ) : replyTargetTrace ? (
+        <ReplyTraceFlow
+          trace={replyTargetTrace}
+          onClose={() => setReplyTargetTrace(null)}
+          onComplete={() => {
+            setReplyTargetTrace(null);
+            setNotice("Your response has joined the trace.");
+            void loadApprovedTraces();
+          }}
+        />
       ) : (
         <section className="browse-shell" aria-label="Browse voice traces">
           <div className="top-controls">
@@ -272,17 +282,6 @@ export function TracesApp() {
               Leave A Trace
             </button>
 
-            {replyTargetTrace ? (
-              <ReplyTraceFlow
-                trace={replyTargetTrace}
-                onClose={() => setReplyTargetTrace(null)}
-                onComplete={() => {
-                  setReplyTargetTrace(null);
-                  setNotice("Your response has joined the trace.");
-                  void loadApprovedTraces();
-                }}
-              />
-            ) : null}
           </div>
 
           {notice ? <p className="submission-notice">{notice}</p> : null}

@@ -19,7 +19,7 @@ export function ListeningPanel({ trace, replies = [], token, now = new Date(), i
   const categoryLabel = trace.category === "soundscape" ? `Soundscape / ${theme.label}` : `${trace.category === "confession" ? "Confession" : "Emotion"} / ${theme.label}`;
   const shouldUsePublicFadedView = trace.status === "approved" && !token && isTraceFaded(trace, now);
   const panelRef = useRef<HTMLElement | null>(null);
-  const canReply = Boolean(onReply && !shouldUsePublicFadedView && !token && trace.audioPath);
+  const canReply = Boolean(onReply && trace.category === "emotion" && !shouldUsePublicFadedView && !token && trace.audioPath);
 
   useEffect(() => {
     if (!onDismiss) {
