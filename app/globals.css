@@ -596,9 +596,9 @@ button:disabled {
   position: absolute;
   z-index: 4;
   left: calc(50% + 48px);
-  top: 52%;
-  width: min(560px, calc(50% - 72px));
-  max-height: min(74vh, 760px);
+  top: clamp(14px, 4%, 28px);
+  width: min(520px, calc(50% - 72px));
+  max-height: calc(100% - clamp(28px, 8%, 56px));
   min-height: 0;
   background: transparent;
   border: 0;
@@ -622,13 +622,13 @@ button:disabled {
 @keyframes panel-arrive-side {
   from {
     opacity: 0;
-    transform: translateY(calc(-50% + 24px)) scale(0.965);
+    transform: translateY(18px) scale(0.965);
     filter: blur(4px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(-50%) scale(1);
+    transform: translateY(0) scale(1);
     filter: blur(0);
   }
 }
@@ -636,12 +636,12 @@ button:disabled {
 @keyframes panel-leave-side {
   from {
     opacity: 1;
-    transform: translateY(-50%) scale(1);
+    transform: translateY(0) scale(1);
   }
 
   to {
     opacity: 0;
-    transform: translateY(calc(-50% + 14px)) scale(0.97);
+    transform: translateY(12px) scale(0.97);
     filter: blur(3px);
   }
 }
@@ -682,10 +682,10 @@ button:disabled {
   z-index: 1;
   width: 100%;
   min-width: 0;
-  min-height: 260px;
+  min-height: 220px;
   background: #fff;
   border: 3px solid var(--line);
-  padding: 18px;
+  padding: 14px 16px 16px;
   box-shadow: 0 0 0 1px #fff;
   overflow: hidden;
 }
@@ -714,11 +714,11 @@ button:disabled {
 .thread-reply-card {
   width: 100%;
   min-width: 0;
-  min-height: 132px;
+  min-height: 108px;
   background: #000;
   color: #fff;
   border-left: 3px solid color-mix(in srgb, var(--thread-color), white 12%);
-  padding: 22px 16px 18px;
+  padding: 14px 16px 16px;
   overflow: hidden;
   animation: reply-card-arrive 620ms cubic-bezier(0.16, 0.72, 0.12, 1) both;
   animation-delay: calc(var(--reply-index, 0) * 80ms);
@@ -740,7 +740,7 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   font-weight: 700;
 }
 
@@ -757,12 +757,12 @@ button:disabled {
   justify-self: end;
   display: block;
   margin-left: auto;
-  min-height: 48px;
+  min-height: 44px;
   border: 2px solid #000;
   border-radius: 999px;
   background: #fff;
   color: #000;
-  padding: 8px 24px;
+  padding: 7px 22px;
   font-weight: 700;
   transition:
     transform 260ms cubic-bezier(0.16, 0.72, 0.12, 1),
@@ -823,7 +823,7 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -831,24 +831,26 @@ button:disabled {
   min-width: 150px;
   display: inline-grid;
   place-items: center;
-  padding: 8px 16px;
+  padding: 7px 14px;
   font-weight: 700;
 }
 
 .panel-topline strong {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
 }
 
 .prompt-copy {
-  min-height: 68px;
+  min-height: 52px;
+  margin: 14px 0 8px;
   color: #b6b6b6;
-  font-size: clamp(1rem, 1.45vw, 1.35rem);
+  font-size: clamp(0.9rem, 1.18vw, 1.12rem);
+  line-height: 1.18;
   font-weight: 700;
 }
 
 .trace-meta {
-  margin: 16px 0 22px;
-  font-size: 0.95rem;
+  margin: 10px 0 14px;
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
@@ -857,16 +859,16 @@ button:disabled {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 5px;
-  height: 72px;
+  gap: 4px;
+  height: 56px;
   overflow: hidden;
   cursor: pointer;
 }
 
 .waveform span {
-  flex: 0 0 5px;
-  width: 5px;
-  min-width: 4px;
+  flex: 0 0 4px;
+  width: 4px;
+  min-width: 3px;
   background: #d2d2d2;
   border-radius: 99px;
   transition:
@@ -879,7 +881,7 @@ button:disabled {
 }
 
 .play-button {
-  width: 86px;
+  width: 68px;
   aspect-ratio: 1;
   border: 0;
   border-radius: 999px;
@@ -910,21 +912,21 @@ button:disabled {
 .play-button.use-fallback-icon::after {
   content: "";
   position: absolute;
-  left: 35px;
-  top: 26px;
-  border-left: 26px solid #fff;
-  border-top: 18px solid transparent;
-  border-bottom: 18px solid transparent;
+  left: 28px;
+  top: 21px;
+  border-left: 21px solid #fff;
+  border-top: 14px solid transparent;
+  border-bottom: 14px solid transparent;
 }
 
 .play-button.use-fallback-icon[data-state="playing"]::after {
-  left: 29px;
-  top: 25px;
-  width: 9px;
-  height: 36px;
+  left: 23px;
+  top: 21px;
+  width: 7px;
+  height: 28px;
   border: 0;
   background: #fff;
-  box-shadow: 20px 0 0 #fff;
+  box-shadow: 16px 0 0 #fff;
 }
 
 .audio-note,
@@ -936,6 +938,11 @@ button:disabled {
   color: #555;
   max-width: 100%;
   overflow-wrap: anywhere;
+}
+
+.audio-note,
+.reply-audio-note {
+  margin: 6px 0 0;
 }
 
 .submission-notice {
@@ -972,6 +979,11 @@ button:disabled {
   right: 20px;
   bottom: 22px;
   min-width: min(430px, 50vw);
+}
+
+.view-stage[data-trace-selected="true"] .leave-trace-button {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .runtime-note {
@@ -1059,11 +1071,6 @@ button:disabled {
   }
 
   .view-stage:has(.listening-panel) .leave-trace-button {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .view-stage[data-trace-selected="true"] .leave-trace-button {
     opacity: 0;
     pointer-events: none;
   }
@@ -2184,10 +2191,11 @@ button:disabled {
   .view-stage > .listening-panel {
     left: calc(50% + 48px);
     right: auto;
-    top: 52%;
+    top: clamp(14px, 4%, 24px);
     bottom: auto;
-    width: min(520px, calc(50% - 72px));
-    min-height: 260px;
+    width: min(480px, calc(50% - 72px));
+    min-height: 0;
+    max-height: calc(100% - clamp(28px, 8%, 48px));
   }
 }
 
