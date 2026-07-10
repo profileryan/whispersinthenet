@@ -66,11 +66,11 @@ create table if not exists public.traces (
   parent_trace_id uuid references public.traces(id) on delete cascade,
   root_trace_id uuid references public.traces(id) on delete cascade,
   constraint traces_category_theme_check check (
-    (category = 'emotion' and theme::text in ('hope', 'joy', 'fear', 'sadness', 'closure', 'anger'))
+    (category::text = 'emotion' and theme::text in ('hope', 'joy', 'fear', 'sadness', 'closure', 'anger'))
     or
-    (category = 'confession' and theme::text in ('longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance'))
+    (category::text = 'confession' and theme::text in ('longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance'))
     or
-    (category = 'soundscape' and theme::text in ('conversation', 'nature', 'traffic', 'music', 'city_life', 'soundscape'))
+    (category::text = 'soundscape' and theme::text in ('conversation', 'nature', 'traffic', 'music', 'city_life', 'soundscape'))
   ),
   constraint traces_retention_expiry_check check (
     (retention_unit = 'epoch' and expires_at is null)
@@ -91,11 +91,11 @@ alter table public.traces add column if not exists root_trace_id uuid references
 
 alter table public.traces drop constraint if exists traces_category_theme_check;
 alter table public.traces add constraint traces_category_theme_check check (
-  (category = 'emotion' and theme::text in ('hope', 'joy', 'fear', 'sadness', 'closure', 'anger'))
+  (category::text = 'emotion' and theme::text in ('hope', 'joy', 'fear', 'sadness', 'closure', 'anger'))
   or
-  (category = 'confession' and theme::text in ('longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance'))
+  (category::text = 'confession' and theme::text in ('longing', 'guilt', 'regret', 'pretence', 'secret', 'avoidance'))
   or
-  (category = 'soundscape' and theme::text in ('conversation', 'nature', 'traffic', 'music', 'city_life', 'soundscape'))
+  (category::text = 'soundscape' and theme::text in ('conversation', 'nature', 'traffic', 'music', 'city_life', 'soundscape'))
 );
 
 do $$ begin
@@ -116,7 +116,23 @@ create index if not exists traces_public_expiry_idx on public.traces (status, ex
 create index if not exists traces_public_roots_idx on public.traces (status, category, theme, created_at desc) where root_trace_id is null;
 create index if not exists traces_public_thread_idx on public.traces (status, root_trace_id, created_at asc) where root_trace_id is not null;
 
+create table if not exists public.trace_flags (
+  id uuid primary key default gen_random_uuid(),
+  trace_id uuid not null references public.traces(id) on delete cascade,
+  reason text check (reason in ('inappropriate_or_offensive', 'harrassment', 'hate_speech')),
+  reason_label text,
+  details text,
+  user_agent text,
+  created_at timestamptz not null default now(),
+  constraint trace_flags_reason_or_details_check check (
+    reason is not null or nullif(btrim(coalesce(details, '')), '') is not null
+  )
+);
+
+create index if not exists trace_flags_trace_created_idx on public.trace_flags (trace_id, created_at desc);
+
 alter table public.traces enable row level security;
+alter table public.trace_flags enable row level security;
 
 drop policy if exists "approved traces are publicly readable" on public.traces;
 create policy "approved traces are publicly readable"

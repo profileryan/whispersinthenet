@@ -11,7 +11,17 @@ type Props = {
 
 export function ThemeFilters({ themes, enabledThemes, onToggle, animationKey }: Props) {
   return (
-    <div key={animationKey} className="theme-filters" aria-label="Trace theme filters">
+    <div
+      key={animationKey}
+      className="theme-filters"
+      aria-label="Trace theme filters"
+      style={
+        {
+          "--theme-count": themes.length,
+          "--theme-min-column": themes.length <= 5 ? "130px" : "110px",
+        } as React.CSSProperties
+      }
+    >
       {themes.map((theme) => {
         const enabled = enabledThemes.has(theme.key);
         return (

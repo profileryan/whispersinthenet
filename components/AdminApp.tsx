@@ -130,7 +130,7 @@ export function AdminApp() {
         <section className="admin-console">
           <div className="admin-filter-row">
           <NavDropdown
-            label="Listen To"
+            label="Listen To:"
             value={adminListenCategory}
             onChange={changeAdminCategory}
             options={[
@@ -181,6 +181,13 @@ export function AdminApp() {
             <div className="review-detail">
               {selectedTrace ? (
                 <>
+                  {selectedTrace.flagReasonLabel || selectedTrace.flagDetails ? (
+                    <div className="flag-review-note">
+                      <strong>Flagged for manual moderation</strong>
+                      {selectedTrace.flagReasonLabel ? <span>Reason: {selectedTrace.flagReasonLabel}</span> : null}
+                      {selectedTrace.flagDetails ? <p>{selectedTrace.flagDetails}</p> : null}
+                    </div>
+                  ) : null}
                   <ListeningPanel trace={selectedTrace} token={token} />
                   <div className="review-actions">
                     <button onClick={() => reviewTrace(selectedTrace, "approved")}>Approve</button>

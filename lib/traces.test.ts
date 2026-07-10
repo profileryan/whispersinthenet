@@ -93,6 +93,37 @@ test("normalizeTrace reads reply linkage fields", () => {
   assert.equal(isTraceReply(trace), true);
 });
 
+test("normalizeTrace reads latest flag report metadata", () => {
+  const trace = normalizeTrace({
+    id: "flagged-1",
+    display_name: "Reviewer",
+    category: "emotion",
+    theme: "hope",
+    prompt: "Prompt",
+    latitude: 1,
+    longitude: 2,
+    audio_path: "pending/flagged-1.webm",
+    status: "pending",
+    created_at: "2026-01-03T03:04:05.000Z",
+    trace_flags: [
+      {
+        reason_label: "HATE SPEECH",
+        details: "new report",
+        created_at: "2026-01-04T03:04:05.000Z",
+      },
+      {
+        reason_label: "HARRASSMENT",
+        details: "old report",
+        created_at: "2026-01-03T03:04:05.000Z",
+      },
+    ],
+  });
+
+  assert.equal(trace.flagReasonLabel, "HATE SPEECH");
+  assert.equal(trace.flagDetails, "new report");
+  assert.equal(trace.flaggedAt, "2026-01-04T03:04:05.000Z");
+});
+
 test("buildTraceThreads groups replies under roots and excludes orphans", () => {
   const root = normalizeTrace({
     id: "root-1",

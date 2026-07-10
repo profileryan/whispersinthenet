@@ -10,7 +10,8 @@
     "test:camera": "node --test components/traceWorldCamera.test.ts",
     "test:retention": "node --test lib/traces.test.ts",
     "test:placement": "node --test components/traceMapPlacement.test.ts",
-    "test": "npm run test:camera && npm run test:retention"
+    "test": "npm run test:camera && npm run test:retention && npm run test:placement && npm run test:lib",
+    "test:lib": "node --test lib/soundPreference.test.ts lib/liveWaveform.test.ts lib/motion.test.ts lib/flagging.test.ts lib/geoPrivacy.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.75.0",

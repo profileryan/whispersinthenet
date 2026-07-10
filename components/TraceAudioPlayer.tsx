@@ -2,25 +2,48 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getAudioUrl } from "@/lib/audio";
+import { deriveAmbientWaveform } from "@/lib/liveWaveform";
 import type { Trace } from "@/lib/traces";
 
 type Props = {
   trace: Trace;
   themeColor: string;
   token?: string | null;
-  noteClassName?: string;
+  variant?: "root" | "reply";
+  onPlaybackStart?: (trace: Trace) => void;
+  onPlaybackPause?: (trace: Trace) => void;
+  onPlaybackEnd?: (trace: Trace) => void;
+  onPlaybackRestart?: (trace: Trace) => void;
 };
 
-export function TraceAudioPlayer({ trace, themeColor, token, noteClassName = "audio-note" }: Props) {
+export function TraceAudioPlayer({
+  trace,
+  themeColor,
+  token,
+  variant = "root",
+  onPlaybackStart,
+  onPlaybackPause,
+  onPlaybackEnd,
+  onPlaybackRestart,
+}: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const waveformRef = useRef<HTMLDivElement | null>(null);
   const progressFrameRef = useRef<number | null>(null);
+  const hasEndedRef = useRef(false);
+  const startNotifiedRef = useRef(false);
   const playerId = useMemo(() => `trace-audio-${trace.id}`, [trace.id]);
   const [audioUrl, setAudioUrl] = useState<string | null>(trace.audioUrl ?? null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const bars = useMemo(() => Array.from({ length: 46 }, (_, index) => 18 + ((index * 17) % 42)), []);
+  const bars = useMemo(() => deriveAmbientWaveform(trace.id), [trace.id]);
   const fallbackDuration = trace.durationSeconds > 0 ? trace.durationSeconds : 60;
+
+  const notifyStart = useCallback(() => {
+    if (!startNotifiedRef.current) {
+      onPlaybackStart?.(trace);
+      startNotifiedRef.current = true;
+    }
+  }, [onPlaybackStart, trace]);
 
   const syncProgress = useCallback(() => {
     const audio = audioRef.current;
@@ -37,6 +60,8 @@ export function TraceAudioPlayer({ trace, themeColor, token, noteClassName = "au
     let active = true;
     setIsPlaying(false);
     setProgress(0);
+    hasEndedRef.current = false;
+    startNotifiedRef.current = false;
     setAudioUrl(trace.audioUrl ?? null);
     void getAudioUrl(trace, token).then((url) => {
       if (active) {
@@ -98,9 +123,22 @@ export function TraceAudioPlayer({ trace, themeColor, token, noteClassName = "au
     }
 
     if (audio.paused) {
+      const shouldRestart = hasEndedRef.current || progress >= 1 || audio.currentTime >= (Number.isFinite(audio.duration) ? audio.duration : fallbackDuration);
+      if (shouldRestart) {
+        audio.currentTime = 0;
+        setProgress(0);
+        hasEndedRef.current = false;
+        startNotifiedRef.current = false;
+        onPlaybackRestart?.(trace);
+      }
       window.dispatchEvent(new CustomEvent("trace-audio-play", { detail: { id: playerId } }));
-      await audio.play();
-      setIsPlaying(true);
+      try {
+        await audio.play();
+        setIsPlaying(true);
+        notifyStart();
+      } catch {
+        setIsPlaying(false);
+      }
     } else {
       audio.pause();
       setIsPlaying(false);
@@ -123,7 +161,7 @@ export function TraceAudioPlayer({ trace, themeColor, token, noteClassName = "au
 
   return (
     <>
-      <div className="player-row trace-audio-player">
+      <div className={`player-row trace-audio-player trace-audio-player--${variant} ${isPlaying ? "is-playing" : "is-idle"}`}>
         <div
           ref={waveformRef}
           className="waveform"
@@ -143,6 +181,7 @@ export function TraceAudioPlayer({ trace, themeColor, token, noteClassName = "au
                 className={isPlayed ? "is-played" : ""}
                 style={{
                   height,
+                  animationDelay: `${(index % 9) * 90}ms`,
                   backgroundColor: isPlayed ? themeColor : undefined,
                 }}
               />
@@ -180,15 +219,26 @@ export function TraceAudioPlayer({ trace, themeColor, token, noteClassName = "au
           onLoadedMetadata={syncProgress}
           onTimeUpdate={syncProgress}
           onSeeked={syncProgress}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
+          onPlay={() => {
+            hasEndedRef.current = false;
+            setIsPlaying(true);
+            notifyStart();
+          }}
+          onPause={() => {
+            setIsPlaying(false);
+            startNotifiedRef.current = false;
+            if (!hasEndedRef.current) {
+              onPlaybackPause?.(trace);
+            }
+          }}
           onEnded={() => {
+            hasEndedRef.current = true;
             setIsPlaying(false);
             setProgress(1);
+            startNotifiedRef.current = false;
+            onPlaybackEnd?.(trace);
           }}
         />
-      ) : !trace.audioPath ? (
-        <p className={noteClassName}>Audio preview is available after Supabase storage is connected.</p>
       ) : null}
     </>
   );

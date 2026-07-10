@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import maplibregl, { type Map, type Marker } from "maplibre-gl";
+import { getAmbientSound } from "@/lib/ambientSound";
+import { mapFrequencyToBars } from "@/lib/liveWaveform";
 import { getTraceMapStyle } from "@/lib/mapStyle";
+import { getPrivacyOffsetLocation } from "@/lib/geoPrivacy";
+import { prefersReducedMotion } from "@/lib/motion";
 import {
   RETENTION_UNITS,
   SINGAPORE_CENTER,
@@ -38,6 +42,27 @@ type PickerOption<T extends string | number> = {
   value: T;
   label: string;
 };
+
+type RecordingPhase = "idle" | "requesting" | "preroll" | "recording" | "settling" | "ready";
+
+const RECORDING_PRE_ROLL_MS = 1600;
+const RECORDING_SETTLE_MS = 700;
+const LIVE_WAVEFORM_FALLBACK = mapFrequencyToBars(new Uint8Array(), 34, 8, 46);
+const NAME_INPUT_REVEAL_DELAY_MS = 520;
+const POETIC_REVEAL_DURATION_MS = 760;
+const NAME_INPUT_FOCUS_DELAY_MS = NAME_INPUT_REVEAL_DELAY_MS + POETIC_REVEAL_DURATION_MS;
+
+function stageDelay(ms: number): React.CSSProperties {
+  return { "--stage-delay": `${ms}ms` } as React.CSSProperties;
+}
+
+function themeCardStyle(item: { color: string; textColor: string }, index: number): React.CSSProperties {
+  return {
+    "--theme-color": item.color,
+    "--theme-text": item.textColor,
+    "--card-delay": `${index * 55}ms`,
+  } as React.CSSProperties;
+}
 
 const RETENTION_QUANTITY_OPTIONS = Array.from({ length: 99 }, (_, index) => {
   const value = index + 1;
@@ -81,6 +106,29 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
   });
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [placeRippleKey, setPlaceRippleKey] = useState(0);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const userSelectedLocationRef = useRef(false);
+
+  useEffect(() => {
+    if (step !== FLOW_STEP.NAME) {
+      return;
+    }
+
+    const focusNameInput = () => {
+      if (document.activeElement === document.body) {
+        nameInputRef.current?.focus();
+      }
+    };
+
+    if (prefersReducedMotion()) {
+      focusNameInput();
+      return;
+    }
+
+    const focusTimer = window.setTimeout(focusNameInput, NAME_INPUT_FOCUS_DELAY_MS);
+    return () => window.clearTimeout(focusTimer);
+  }, [step]);
 
   const leaveThemes = useMemo(() => (category ? getLeaveThemesForCategory(category) : []), [category]);
   const selectedThemeLabel = theme ? getTraceTheme(theme).label.toLowerCase() : "trace";
@@ -186,6 +234,8 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
       return;
     }
 
+    setPlaceRippleKey((current) => current + 1);
+    getAmbientSound().playCue("place");
     setSubmitState("done");
     setStep(FLOW_STEP.DONE);
   }
@@ -225,31 +275,43 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
       </button>
 
       <span key={`pulse-${step}`} className="flow-pulse" aria-hidden="true" />
+      {placeRippleKey ? <span key={`place-ripple-${placeRippleKey}`} className="place-ripple" aria-hidden="true" /> : null}
 
       {step === FLOW_STEP.NAME ? (
         <div className="flow-card name-step">
-          <h2>Who does this trace belong to?</h2>
+          <h2 className="poetic-stage">Who does this trace belong to?</h2>
           <input
+            ref={nameInputRef}
+            className="poetic-control-stage"
+            style={stageDelay(NAME_INPUT_REVEAL_DELAY_MS)}
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
             placeholder="A name, real or imagined"
             maxLength={40}
-            autoFocus
           />
-          <button className="primary-action" disabled={!displayName.trim()} onClick={() => setStep(FLOW_STEP.CATEGORY)}>
-            Next
+          <button
+            className="primary-action poetic-control-stage"
+            style={stageDelay(620)}
+            disabled={!displayName.trim()}
+            onClick={() => setStep(FLOW_STEP.CATEGORY)}
+          >
+            Done
           </button>
         </div>
       ) : null}
 
       {step === FLOW_STEP.CATEGORY ? (
         <div className="flow-card type-step">
-          <h2>
-            The city is ever-shifting, but humanity persists.
-            <br />
-            What would you like to leave a trace of today?
-          </h2>
-          <div className="type-choice-grid">
+          <div className="poetic-prompt" aria-label="Trace category prompt">
+            <p className="poetic-line poetic-line-soft poetic-stage">The city is ever shifting...</p>
+            <p className="poetic-line poetic-line-soft poetic-stage" style={stageDelay(1000)}>
+              ...but humanity persists.
+            </p>
+            <h2 className="poetic-line poetic-stage" style={stageDelay(2000)}>
+              What would you like to leave a trace of today?
+            </h2>
+          </div>
+          <div className="type-choice-grid poetic-stage" style={stageDelay(3000)}>
             <button type="button" className={category === "emotion" ? "is-selected" : ""} onClick={() => chooseCategory("emotion")}>
               <strong>A Fleeting Emotion</strong>
             </button>
@@ -260,7 +322,12 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
               <strong>A Present Soundscape</strong>
             </button>
           </div>
-          <button className="primary-action" disabled={!category} onClick={() => setStep(category === "soundscape" ? FLOW_STEP.RECORD : FLOW_STEP.THEME)}>
+          <button
+            className="primary-action poetic-control-stage"
+            style={stageDelay(3150)}
+            disabled={!category}
+            onClick={() => setStep(category === "soundscape" ? FLOW_STEP.RECORD : FLOW_STEP.THEME)}
+          >
             Next
           </button>
         </div>
@@ -268,20 +335,20 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
 
       {step === FLOW_STEP.THEME ? (
         <div className={`theme-step${category === "soundscape" ? " is-soundscape" : ""}`}>
-          <h2>
+          <h2 className="poetic-stage">
             {category === "soundscape"
               ? "Which of these best describes your soundscape?"
               : category === "confession"
                 ? "Choose a confession"
                 : "Choose an emotion"}
           </h2>
-          <div className="prompt-grid">
-            {leaveThemes.map((item) => (
+          <div className="prompt-grid poetic-stage" style={stageDelay(1500)}>
+            {leaveThemes.map((item, index) => (
               <button
                 key={item.key}
                 type="button"
-                className={theme === item.key ? "is-selected" : ""}
-                style={{ "--theme-color": item.color, "--theme-text": item.textColor } as React.CSSProperties}
+                className={`poetic-card-stage${theme === item.key ? " is-selected" : ""}`}
+                style={themeCardStyle(item, index)}
                 onClick={() => chooseTheme(item.key)}
               >
                 <span className="theme-card-inner">
@@ -296,7 +363,12 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
               </button>
             ))}
           </div>
-          <button className="primary-action" disabled={!theme} onClick={() => setStep(category === "soundscape" ? FLOW_STEP.DURATION : FLOW_STEP.RECORD)}>
+          <button
+            className="primary-action poetic-control-stage"
+            style={stageDelay(1650)}
+            disabled={!theme}
+            onClick={() => setStep(category === "soundscape" ? FLOW_STEP.DURATION : FLOW_STEP.RECORD)}
+          >
             Next
           </button>
         </div>
@@ -367,7 +439,7 @@ export function LeaveTraceFlow({ onClose, onComplete }: Props) {
       {step === FLOW_STEP.LOCATION ? (
         <div className="place-step">
           <h2>Place your trace</h2>
-          <LocationPicker value={location} onChange={setLocation} />
+          <LocationPicker value={location} onChange={setLocation} userSelectedLocationRef={userSelectedLocationRef} />
           <button className="primary-action" disabled={submitState === "submitting"} onClick={submitTrace}>
             {submitState === "submitting" ? "Sending..." : "Done"}
           </button>
@@ -512,20 +584,40 @@ function RecordingStep({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const activeStreamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<number | null>(null);
+  const prerollTimerRef = useRef<number | null>(null);
+  const settleTimerRef = useRef<number | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const isMountedRef = useRef(true);
   const startedAtRef = useRef<number>(0);
   const chunksRef = useRef<BlobPart[]>([]);
   const [seconds, setSeconds] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
+  const [recordingPhase, setRecordingPhase] = useState<RecordingPhase>(audioBlob ? "ready" : "idle");
+  const [liveBars, setLiveBars] = useState<number[]>(LIVE_WAVEFORM_FALLBACK);
   const [error, setError] = useState("");
   const previewUrl = useMemo(() => (audioBlob ? URL.createObjectURL(audioBlob) : null), [audioBlob]);
+  const isRecording = recordingPhase === "recording";
+  const isRecordBusy = recordingPhase === "requesting" || recordingPhase === "preroll" || recordingPhase === "settling";
 
   useEffect(() => {
+    if (audioBlob && recordingPhase === "idle") {
+      setRecordingPhase("ready");
+    }
+    if (!audioBlob && recordingPhase === "ready") {
+      setRecordingPhase("idle");
+    }
+  }, [audioBlob, recordingPhase]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
     return () => {
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-      }
-      activeStreamRef.current?.getTracks().forEach((track) => track.stop());
+      isMountedRef.current = false;
+      cleanupRecordingResources();
     };
+    // cleanupRecordingResources intentionally reads mutable refs at unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -538,21 +630,27 @@ function RecordingStep({
 
   async function startRecording() {
     setError("");
-    if (!navigator.mediaDevices?.getUserMedia) {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       setError("This browser does not expose microphone recording here.");
       return;
     }
 
+    setRecordingPhase("requesting");
+    let stream: MediaStream | null = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!isMountedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      const recordingStream = stream;
       onRecordingStart();
-      activeStreamRef.current = stream;
+      activeStreamRef.current = recordingStream;
       chunksRef.current = [];
-      const recorder = new MediaRecorder(stream, getPreferredAudioRecordingOptions());
+      const recorder = new MediaRecorder(recordingStream, getPreferredAudioRecordingOptions());
       mediaRecorderRef.current = recorder;
-      startedAtRef.current = Date.now();
       setSeconds(0);
-      setIsRecording(true);
+      setLiveBars(LIVE_WAVEFORM_FALLBACK);
 
       recorder.ondataavailable = (event) => {
         if (event.data.size) {
@@ -563,24 +661,100 @@ function RecordingStep({
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         const elapsed = Math.min(60, Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000)));
-        onRecordingComplete(blob, elapsed);
-        stream.getTracks().forEach((track) => track.stop());
-        if (activeStreamRef.current === stream) {
-          activeStreamRef.current = null;
+        cleanupRecordingResources({ keepRecorder: true });
+        if (!isMountedRef.current) {
+          mediaRecorderRef.current = null;
+          return;
         }
-        setIsRecording(false);
+        setRecordingPhase("settling");
+        const finish = () => {
+          settleTimerRef.current = null;
+          if (!isMountedRef.current) {
+            mediaRecorderRef.current = null;
+            return;
+          }
+          mediaRecorderRef.current = null;
+          onRecordingComplete(blob, elapsed);
+          setRecordingPhase("ready");
+        };
+        if (prefersReducedMotion()) {
+          finish();
+        } else {
+          settleTimerRef.current = window.setTimeout(finish, RECORDING_SETTLE_MS);
+        }
       };
 
-      recorder.start();
-      timerRef.current = window.setInterval(() => {
-        const elapsed = Math.round((Date.now() - startedAtRef.current) / 1000);
-        setSeconds(elapsed);
-        if (elapsed >= 60) {
-          stopRecording();
-        }
-      }, 250);
+      setRecordingPhase("preroll");
+      getAmbientSound().playCue("settle");
+      const begin = () => beginMediaRecorder(recorder, recordingStream);
+      if (prefersReducedMotion()) {
+        begin();
+      } else {
+        prerollTimerRef.current = window.setTimeout(() => {
+          prerollTimerRef.current = null;
+          begin();
+        }, RECORDING_PRE_ROLL_MS);
+      }
     } catch {
+      stream?.getTracks().forEach((track) => track.stop());
+      if (!isMountedRef.current) {
+        return;
+      }
+      if (activeStreamRef.current === stream) {
+        activeStreamRef.current = null;
+      }
+      cleanupRecordingResources();
+      setRecordingPhase(audioBlob ? "ready" : "idle");
       setError("Microphone permission was not granted.");
+    }
+  }
+
+  function beginMediaRecorder(recorder: MediaRecorder, stream: MediaStream) {
+    if (!isMountedRef.current || mediaRecorderRef.current !== recorder) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+
+    startedAtRef.current = Date.now();
+    setSeconds(0);
+    setRecordingPhase("recording");
+    startLiveWaveform(stream);
+    recorder.start();
+    timerRef.current = window.setInterval(() => {
+      const elapsed = Math.round((Date.now() - startedAtRef.current) / 1000);
+      setSeconds(elapsed);
+      if (elapsed >= 60) {
+        stopRecording();
+      }
+    }, 250);
+  }
+
+  function startLiveWaveform(stream: MediaStream) {
+    cleanupAnalyser();
+    const AudioContextConstructor = window.AudioContext;
+    if (!AudioContextConstructor) {
+      return;
+    }
+
+    try {
+      const audioContext = new AudioContextConstructor();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      analyser.fftSize = 128;
+      analyser.smoothingTimeConstant = 0.82;
+      source.connect(analyser);
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+      sourceRef.current = source;
+      const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+      const sample = () => {
+        analyser.getByteFrequencyData(frequencyData);
+        setLiveBars(mapFrequencyToBars(frequencyData, 34, 8, 46));
+        animationFrameRef.current = window.requestAnimationFrame(sample);
+      };
+      sample();
+    } catch {
+      cleanupAnalyser();
     }
   }
 
@@ -592,34 +766,108 @@ function RecordingStep({
     const recorder = mediaRecorderRef.current;
     if (recorder?.state === "recording") {
       recorder.stop();
+    } else {
+      cleanupRecordingResources();
+      setRecordingPhase(audioBlob ? "ready" : "idle");
+    }
+  }
+
+  function cleanupAnalyser() {
+    if (animationFrameRef.current) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    sourceRef.current?.disconnect();
+    analyserRef.current?.disconnect();
+    void audioContextRef.current?.close().catch(() => undefined);
+    sourceRef.current = null;
+    analyserRef.current = null;
+    audioContextRef.current = null;
+  }
+
+  function cleanupRecordingResources({ keepRecorder = false }: { keepRecorder?: boolean } = {}) {
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (prerollTimerRef.current) {
+      window.clearTimeout(prerollTimerRef.current);
+      prerollTimerRef.current = null;
+    }
+    if (settleTimerRef.current) {
+      window.clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+    cleanupAnalyser();
+    activeStreamRef.current?.getTracks().forEach((track) => track.stop());
+    activeStreamRef.current = null;
+    if (!keepRecorder) {
+      const recorder = mediaRecorderRef.current;
+      if (recorder && recorder.state !== "inactive") {
+        recorder.ondataavailable = null;
+        recorder.onstop = null;
+        try {
+          recorder.stop();
+        } catch {
+          // The recorder may already be stopping; cleanup should remain safe.
+        }
+      }
+      mediaRecorderRef.current = null;
     }
   }
 
   return (
     <div className={`flow-card record-step${category !== "emotion" ? " is-single-prompt" : ""}`}>
       {category === "soundscape" ? (
-        <h2 className="welcome-heading">You are in the present...</h2>
+        <h2 className="welcome-heading poetic-stage">You are in the present...</h2>
       ) : (
-        <h2 className="welcome-heading">
+        <h2 className="welcome-heading poetic-stage">
           Your <span>{categoryLabel}</span> {welcomeText}
         </h2>
       )}
-      <div className="recording-prompt">
+      <div className="recording-prompt poetic-stage" style={stageDelay(500)}>
         <p key={prompt} className="recording-question">
           {prompt}
         </p>
         {category === "emotion" ? (
-          <button type="button" className="different-question-button" disabled={isRecording} onClick={onDifferentQuestion}>
+          <button
+            type="button"
+            className="different-question-button poetic-control-stage"
+            style={stageDelay(850)}
+            disabled={isRecording || isRecordBusy}
+            onClick={onDifferentQuestion}
+          >
             Different Question
           </button>
         ) : null}
       </div>
-      <button type="button" className="record-button" onClick={isRecording ? stopRecording : startRecording}>
+      {recordingPhase === "preroll" || recordingPhase === "recording" ? (
+        <div className={`record-ritual ${recordingPhase === "preroll" ? "is-preroll" : "is-recording"}`} aria-hidden="true">
+          <span className="recording-ring" />
+          <div className="record-live-waveform">
+            {liveBars.map((height, index) => (
+              <span key={index} style={{ height: `${height}px` }} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <button
+        type="button"
+        className="record-button poetic-control-stage"
+        style={stageDelay(1050)}
+        disabled={isRecordBusy}
+        onClick={isRecording ? stopRecording : startRecording}
+      >
         {isRecording ? `Stop Recording (${Math.max(0, 60 - seconds)} Secs)` : audioBlob ? "Record Again (60 Secs)" : "Record Your Note (60 Secs)"}
       </button>
-      {previewUrl ? <audio controls src={previewUrl} /> : null}
+      {previewUrl ? <audio className="poetic-control-stage" style={stageDelay(1150)} controls src={previewUrl} /> : null}
       {error ? <p className="flow-message">{error}</p> : null}
-      <button className="secondary-action" disabled={!audioBlob || isRecording} onClick={onNext}>
+      <button
+        className="secondary-action poetic-control-stage"
+        style={stageDelay(1150)}
+        disabled={!audioBlob || recordingPhase !== "ready"}
+        onClick={onNext}
+      >
         Done
       </button>
     </div>
@@ -636,18 +884,36 @@ function getPreferredAudioRecordingOptions(): MediaRecorderOptions {
   };
 }
 
-function LocationPicker({ value, onChange }: { value: LocationValue; onChange: (value: LocationValue) => void }) {
+function LocationPicker({
+  value,
+  onChange,
+  userSelectedLocationRef,
+}: {
+  value: LocationValue;
+  onChange: (value: LocationValue) => void;
+  userSelectedLocationRef: React.MutableRefObject<boolean>;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
   const markerRef = useRef<Marker | null>(null);
 
+  const selectUserLocation = useCallback((next: LocationValue) => {
+    userSelectedLocationRef.current = true;
+    onChange(next);
+  }, [onChange, userSelectedLocationRef]);
+
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
       (position) => {
-        const next = {
+        if (userSelectedLocationRef.current) {
+          return;
+        }
+
+        const reportedLocation = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         };
+        const next = getPrivacyOffsetLocation(reportedLocation);
         onChange(next);
         mapRef.current?.flyTo({ center: [next.longitude, next.latitude], zoom: 15 });
         markerRef.current?.setLngLat([next.longitude, next.latitude]);
@@ -655,7 +921,7 @@ function LocationPicker({ value, onChange }: { value: LocationValue; onChange: (
       () => undefined,
       { enableHighAccuracy: true, timeout: 8000 },
     );
-  }, [onChange]);
+  }, [onChange, userSelectedLocationRef]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) {
@@ -675,12 +941,12 @@ function LocationPicker({ value, onChange }: { value: LocationValue; onChange: (
 
     marker.on("dragend", () => {
       const lngLat = marker.getLngLat();
-      onChange({ longitude: lngLat.lng, latitude: lngLat.lat });
+      selectUserLocation({ longitude: lngLat.lng, latitude: lngLat.lat });
     });
 
     map.on("click", (event) => {
       marker.setLngLat(event.lngLat);
-      onChange({ longitude: event.lngLat.lng, latitude: event.lngLat.lat });
+      selectUserLocation({ longitude: event.lngLat.lng, latitude: event.lngLat.lat });
     });
 
     mapRef.current = map;
@@ -692,7 +958,7 @@ function LocationPicker({ value, onChange }: { value: LocationValue; onChange: (
       mapRef.current = null;
       markerRef.current = null;
     };
-  }, [onChange, value.latitude, value.longitude]);
+  }, [onChange, selectUserLocation, value.latitude, value.longitude]);
 
   return <div ref={containerRef} className="location-picker" aria-label="Choose trace location" />;
 }

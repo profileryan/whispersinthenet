@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const supabase = createServerSupabase();
   const { data, error } = await supabase
     .from("traces")
-    .select("*")
+    .select("*,trace_flags(reason_label,details,created_at)")
     .order("created_at", { ascending: false })
     .limit(100);
 

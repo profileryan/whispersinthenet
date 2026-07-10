@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   const durationSeconds = Number(formData.get("durationSeconds") ?? 0);
   const audio = formData.get("audio");
 
-  if (!rootTraceId || !displayName || displayName.length > 80) {
+  if (!isUuid(rootTraceId) || !displayName || displayName.length > 80) {
     return NextResponse.json({ ok: false, error: "Missing reply details." }, { status: 400 });
   }
 
@@ -105,4 +105,8 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, traceId: replyId, rootTraceId: rootTrace.id });
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }

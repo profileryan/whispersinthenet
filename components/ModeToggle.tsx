@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ViewMode } from "@/lib/traces";
 
 type NavOption<T extends string> = {
@@ -18,8 +18,27 @@ type NavDropdownProps<T extends string> = {
 
 export function NavDropdown<T extends string>({ label, value, options, onChange, className = "" }: NavDropdownProps<T>) {
   const [open, setOpen] = useState(false);
+  const dropdownId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selected = options.find((option) => option.value === value) ?? options[0];
+
+  function setDropdownOpen(nextOpen: boolean) {
+    if (nextOpen && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("traces:navigation-dropdown-open", { detail: dropdownId }));
+    }
+    setOpen(nextOpen);
+  }
+
+  useEffect(() => {
+    function handlePeerOpen(event: Event) {
+      if (event instanceof CustomEvent && event.detail !== dropdownId) {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener("traces:navigation-dropdown-open", handlePeerOpen);
+    return () => window.removeEventListener("traces:navigation-dropdown-open", handlePeerOpen);
+  }, [dropdownId]);
 
   useEffect(() => {
     if (!open) return;
@@ -58,14 +77,14 @@ export function NavDropdown<T extends string>({ label, value, options, onChange,
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       if (!open) {
-        setOpen(true);
+        setDropdownOpen(true);
         return;
       }
       moveSelection(event.key === "ArrowDown" ? 1 : -1);
     }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      setOpen((current) => !current);
+      setDropdownOpen(!open);
     }
   }
 
@@ -77,7 +96,10 @@ export function NavDropdown<T extends string>({ label, value, options, onChange,
         className="nav-dropdown-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={(event) => {
+          event.stopPropagation();
+          setDropdownOpen(!open);
+        }}
       >
         {selected.label}
         <span className="nav-dropdown-caret" aria-hidden="true" />
@@ -91,7 +113,8 @@ export function NavDropdown<T extends string>({ label, value, options, onChange,
             aria-checked={option.value === value}
             tabIndex={open ? 0 : -1}
             className={option.value === value ? "is-selected" : ""}
-            onClick={() => {
+            onClick={(event) => {
+              event.stopPropagation();
               onChange(option.value);
               setOpen(false);
             }}
@@ -112,7 +135,7 @@ type Props = {
 export function ModeToggle({ mode, onChange }: Props) {
   return (
     <NavDropdown
-      label="Explore In"
+      label="Explore In:"
       value={mode}
       onChange={onChange}
       options={[

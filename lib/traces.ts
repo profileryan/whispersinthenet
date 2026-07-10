@@ -44,6 +44,9 @@ export type Trace = {
   expiresAt?: string | null;
   status: TraceStatus;
   createdAt: string;
+  flagReasonLabel?: string | null;
+  flagDetails?: string | null;
+  flaggedAt?: string | null;
 };
 
 export type TraceThread = {
@@ -1217,6 +1220,7 @@ export function normalizeTrace(row: Record<string, unknown>): Trace {
   const inferredCategory = getCategoryForTheme(theme) ?? "emotion";
   const rawCategory = row.category ?? row.trace_category ?? row.traceCategory;
   const category = isTraceCategory(rawCategory) ? rawCategory : inferredCategory;
+  const flagReport = normalizeLatestFlagReport(row.trace_flags ?? row.traceFlags);
 
   return {
     id: String(row.id),
@@ -1240,7 +1244,25 @@ export function normalizeTrace(row: Record<string, unknown>): Trace {
     expiresAt,
     status: String(row.status ?? "pending") as TraceStatus,
     createdAt: String(row.created_at ?? row.createdAt ?? new Date().toISOString()),
+    flagReasonLabel: String(row.flag_reason_label ?? row.flagReasonLabel ?? flagReport?.reason_label ?? flagReport?.reasonLabel ?? "") || null,
+    flagDetails: String(row.flag_details ?? row.flagDetails ?? flagReport?.details ?? "") || null,
+    flaggedAt: String(row.flagged_at ?? row.flaggedAt ?? flagReport?.created_at ?? flagReport?.createdAt ?? "") || null,
   };
+}
+
+function normalizeLatestFlagReport(value: unknown): Record<string, unknown> | null {
+  if (Array.isArray(value)) {
+    const [first] = value
+      .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+      .sort((left, right) => {
+        const leftTime = new Date(String(left.created_at ?? left.createdAt ?? 0)).getTime();
+        const rightTime = new Date(String(right.created_at ?? right.createdAt ?? 0)).getTime();
+        return rightTime - leftTime;
+      });
+    return first && typeof first === "object" ? (first as Record<string, unknown>) : null;
+  }
+
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
 
 export function formatTraceDate(value: string) {

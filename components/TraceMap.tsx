@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl, { type Map, type Marker } from "maplibre-gl";
 import { getTraceMapMarkerPoint } from "@/components/traceMapPlacement";
 import { getTraceMapStyle } from "@/lib/mapStyle";
+import { prefersReducedMotion, staggerDelays } from "@/lib/motion";
 import { formatTraceDate, getTraceTheme, isTraceFaded, SINGAPORE_CENTER, type Trace } from "@/lib/traces";
 
 type Props = {
@@ -20,12 +21,16 @@ export function TraceMap({ traces, selectedTrace, now, replyCountByTraceId, onSe
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
   const markersRef = useRef<Marker[]>([]);
+  const markerElementsRef = useRef<globalThis.Map<string, HTMLButtonElement>>(new globalThis.Map());
   const clearRef = useRef(onClearSelection);
+  const selectRef = useRef(onSelectTrace);
   const selectedTraceRef = useRef(selectedTrace);
+  const [mapUnavailable, setMapUnavailable] = useState(false);
 
   useEffect(() => {
     clearRef.current = onClearSelection;
-  }, [onClearSelection]);
+    selectRef.current = onSelectTrace;
+  }, [onClearSelection, onSelectTrace]);
 
   useEffect(() => {
     selectedTraceRef.current = selectedTrace;
@@ -36,33 +41,22 @@ export function TraceMap({ traces, selectedTrace, now, replyCountByTraceId, onSe
       return;
     }
 
-    mapRef.current = new maplibregl.Map({
-      container: containerRef.current,
-      style: getTraceMapStyle("browse"),
-      center: [SINGAPORE_CENTER.longitude, SINGAPORE_CENTER.latitude],
-      zoom: 11,
-      pitch: 0,
-    });
+    try {
+      mapRef.current = new maplibregl.Map({
+        container: containerRef.current,
+        style: getTraceMapStyle("browse"),
+        center: [SINGAPORE_CENTER.longitude, SINGAPORE_CENTER.latitude],
+        zoom: 10.5,
+        pitch: 0,
+      });
+    } catch {
+      setMapUnavailable(true);
+      return;
+    }
 
     mapRef.current.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-left");
     const handleMapClick = () => clearRef.current();
     mapRef.current.on("click", handleMapClick);
-
-    navigator.geolocation?.getCurrentPosition(
-      (position) => {
-        if (selectedTraceRef.current) {
-          return;
-        }
-
-        mapRef.current?.flyTo({
-          center: [position.coords.longitude, position.coords.latitude],
-          zoom: 15,
-          duration: 1300,
-        });
-      },
-      () => undefined,
-      { enableHighAccuracy: true, timeout: 8000 },
-    );
 
     return () => {
       mapRef.current?.off("click", handleMapClick);
@@ -74,6 +68,27 @@ export function TraceMap({ traces, selectedTrace, now, replyCountByTraceId, onSe
   }, []);
 
   useEffect(() => {
+    const container = containerRef.current;
+    const map = mapRef.current;
+    if (!container || !map) {
+      return;
+    }
+
+    map.resize();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      map.resize();
+    });
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map) {
       return;
@@ -81,36 +96,55 @@ export function TraceMap({ traces, selectedTrace, now, replyCountByTraceId, onSe
 
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
+    markerElementsRef.current.clear();
 
-    [...traces]
-      .sort((left, right) => Number(isTraceFaded(left, now)) - Number(isTraceFaded(right, now)))
-      .forEach((trace) => {
-        const faded = isTraceFaded(trace, now);
-        const theme = getTraceTheme(trace.theme);
-        const replyCount = replyCountByTraceId?.get(trace.id) ?? 0;
-        const element = createMarkerElement(trace, selectedTrace?.id === trace.id, faded, replyCount);
-        element.className = `map-trace-marker ${selectedTrace?.id === trace.id ? "is-selected" : ""} ${faded ? "is-faded" : ""}`;
-        element.dataset.replyCount = String(replyCount);
-        element.setAttribute(
-          "aria-label",
-          faded
-            ? `Faded ${theme.label} trace from ${formatTraceDate(trace.createdAt)}`
-            : replyCount
-              ? `Listen to ${theme.label} trace by ${trace.displayName} with ${replyCount} response${replyCount === 1 ? "" : "s"}`
-              : `Listen to ${theme.label} trace by ${trace.displayName}`,
-        );
-        element.addEventListener("click", (event) => {
-          event.stopPropagation();
-          onSelectTrace(trace);
-        });
+    const sortedTraces = [...traces].sort(
+      (left, right) => Number(isTraceFaded(left, now)) - Number(isTraceFaded(right, now)),
+    );
+    const reducedMotion = prefersReducedMotion();
+    const emergenceDelays = reducedMotion ? staggerDelays(sortedTraces.length, 0, 0) : staggerDelays(sortedTraces.length, 45, 900);
 
-        const marker = new maplibregl.Marker({ element, anchor: "center" })
-          .setLngLat([trace.longitude, trace.latitude])
-          .addTo(map);
-
-        markersRef.current.push(marker);
+    sortedTraces.forEach((trace, index) => {
+      const faded = isTraceFaded(trace, now);
+      const theme = getTraceTheme(trace.theme);
+      const replyCount = replyCountByTraceId?.get(trace.id) ?? 0;
+      const isSelected = selectedTraceRef.current?.id === trace.id;
+      const element = createMarkerElement(trace, isSelected, faded, replyCount);
+      element.className = `map-trace-marker ${isSelected ? "is-selected" : ""} ${faded ? "is-faded" : ""} ${reducedMotion ? "" : "is-emerging"}`;
+      if (!reducedMotion) {
+        element.style.animationDelay = `${emergenceDelays[index]}ms`;
+      }
+      element.dataset.replyCount = String(replyCount);
+      element.dataset.theme = trace.theme;
+      element.setAttribute(
+        "aria-label",
+        faded
+          ? `Faded ${theme.label} trace from ${formatTraceDate(trace.createdAt)}`
+          : replyCount
+            ? `Listen to ${theme.label} trace by ${trace.displayName} with ${replyCount} response${replyCount === 1 ? "" : "s"}`
+            : `Listen to ${theme.label} trace by ${trace.displayName}`,
+      );
+      element.addEventListener("click", (event) => {
+        event.stopPropagation();
+        selectRef.current(trace);
       });
-  }, [now, onSelectTrace, replyCountByTraceId, selectedTrace?.id, traces]);
+
+      const marker = new maplibregl.Marker({ element, anchor: "center" })
+        .setLngLat([trace.longitude, trace.latitude])
+        .addTo(map);
+
+      markersRef.current.push(marker);
+      markerElementsRef.current.set(trace.id, element);
+    });
+  }, [now, replyCountByTraceId, traces]);
+
+  useEffect(() => {
+    markerElementsRef.current.forEach((element, traceId) => {
+      const selected = selectedTrace?.id === traceId;
+      element.classList.toggle("is-selected", selected);
+      element.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+  }, [selectedTrace?.id]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -118,7 +152,7 @@ export function TraceMap({ traces, selectedTrace, now, replyCountByTraceId, onSe
       return;
     }
 
-    const focusDuration = focusTraceMarker(map, selectedTrace);
+    const focusDuration = focusTraceMarker(map, selectedTrace, prefersReducedMotion());
     const revealTimer = window.setTimeout(() => {
       onTraceFocusComplete?.(selectedTrace);
     }, focusDuration + 90);
@@ -137,7 +171,7 @@ export function TraceMap({ traces, selectedTrace, now, replyCountByTraceId, onSe
       activeMap.resize();
       window.requestAnimationFrame(() => {
         if (selectedTraceRef.current) {
-          focusTraceMarker(activeMap, selectedTraceRef.current);
+          focusTraceMarker(activeMap, selectedTraceRef.current, prefersReducedMotion());
         }
       });
     }
@@ -148,10 +182,14 @@ export function TraceMap({ traces, selectedTrace, now, replyCountByTraceId, onSe
     };
   }, [selectedTrace]);
 
-  return <div ref={containerRef} className="trace-map" aria-label="Interactive city map" />;
+  return (
+    <div ref={containerRef} className="trace-map" aria-label="Interactive city map">
+      {mapUnavailable ? <p className="map-unavailable-note">Map view is unavailable in this browser.</p> : null}
+    </div>
+  );
 }
 
-function focusTraceMarker(map: Map, trace: Trace) {
+function focusTraceMarker(map: Map, trace: Trace, reducedMotion = false) {
   const canvas = map.getCanvas();
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
@@ -164,7 +202,7 @@ function focusTraceMarker(map: Map, trace: Trace) {
   const centerPoint = map.project(map.getCenter());
   const xDelta = currentPoint.x - targetPoint.x;
   const yDelta = currentPoint.y - targetPoint.y;
-  const focusDuration = Math.hypot(xDelta, yDelta) > 6 ? 620 : 140;
+  const focusDuration = reducedMotion ? 0 : Math.hypot(xDelta, yDelta) > 6 ? 620 : 140;
 
   map.easeTo({
     center: map.unproject([centerPoint.x + xDelta, centerPoint.y + yDelta]),
