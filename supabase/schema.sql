@@ -138,7 +138,31 @@ drop policy if exists "approved traces are publicly readable" on public.traces;
 create policy "approved traces are publicly readable"
 on public.traces
 for select
+to anon, authenticated
 using (status = 'approved');
+
+grant usage on schema public to anon, authenticated;
+grant select on public.traces to anon, authenticated;
+revoke all on public.trace_flags from anon, authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('trace-audio', 'trace-audio', false, 10485760, array['audio/webm', 'audio/ogg', 'audio/mp4'])
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+do $$ begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+       where pubname = 'supabase_realtime'
+       and schemaname = 'public'
+       and tablename = 'traces'
+     ) then
+    execute 'alter publication supabase_realtime add table public.traces';
+  end if;
+end $$;
 
 -- Writes and moderation are performed by Next.js API routes with the service role key.
 -- Keep the trace-audio bucket private. The app creates short-lived signed URLs only for approved traces or allowlisted admins.
