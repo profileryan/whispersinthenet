@@ -154,8 +154,8 @@ export function TracesApp() {
     [traceThreads],
   );
   const hasUnavailableAudio = useMemo(
-    () => visibleTraces.some((trace) => !trace.audioPath && !trace.audioUrl),
-    [visibleTraces],
+    () => loadState !== "live" && visibleTraces.some((trace) => !trace.audioPath && !trace.audioUrl),
+    [loadState, visibleTraces],
   );
 
   function playCue(cue: "select" | "affirm" | "choice") {
